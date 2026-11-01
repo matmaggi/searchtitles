@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SearchTitles – Buscador de Legendas para Contexto</title>
+<!--
+ESTRUTURA (arquivo único para rodar com duplo clique, sem servidor; módulos separados por objetos):
+ Parsers   – registro de formatos {id, exts, parse(texto)->cues}. Novo formato = Parsers.register({...}).
+ prepare() – gera o texto "de busca" (sem tags) + mapa posição→texto original. O original nunca é alterado.
+ Search    – regex por termo (maiúsc./minúsc., palavra inteira/parcial), processamento incremental com cancelamento.
+ Render    – destaques via mapa (funcionam mesmo com o termo dividido por tags), paginação de resultados.
+ Context   – 3 legendas antes/depois pela posição no arquivo + pareamento temporal de tradução (pair()).
+ Estado único em S. Nenhum dado sai do navegador.
+-->
+<style>
+:root{--bg:#eef1ef;--card:#fff;--tx:#1b2420;--mut:#5f6d66;--bd:#d8dfdb;--ac:#1f6f5c;--acb:#e3f1ec;--hl:#ffe14d;--err:#b42318;--t1:#e6f4ee;--t2:#fdf1dc;--t3:#e7edfc;--t4:#fbe9f1;--cur:#fde2e2}
+@media(prefers-color-scheme:dark){:root{--bg:#121714;--card:#1b221e;--tx:#e6ece8;--mut:#9aa8a0;--bd:#2d3832;--ac:#5fc4a8;--acb:#1f3a31;--err:#ff8b7e;--t1:#18291f;--t2:#2b2515;--t3:#1a2236;--t4:#2b1c25;--cur:#4a2327}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+header,main,footer{max-width:1000px;margin:0 auto;padding:0 16px}
+header{padding-top:24px}
+h1{margin:0;font:700 26px/1.2 Georgia,"Times New Roman",serif}
+header p{margin:4px 0 0;color:var(--mut)}
+section.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px;margin:14px 0}
+h2{margin:0 0 10px;font-size:16px}
+button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:6px;padding:5px 11px;cursor:pointer}
+button:hover{border-color:var(--ac)}
+button.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+button.dng{color:var(--err)}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+input[type=text]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.sp{justify-content:space-between}
+label{display:inline-flex;gap:6px;align-items:center;margin-right:14px}
+.drop{border:2px dashed var(--bd);border-radius:8px;padding:12px;text-align:center;color:var(--mut);margin-bottom:10px}
+.drop.on{border-color:var(--ac);background:var(--acb)}
+#files{list-style:none;margin:8px 0 0;padding:0;max-height:220px;overflow:auto}
+#files li{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid var(--bd)}
+#files .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bad{color:var(--err)}.mut{color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1px solid var(--tc);border-left:5px solid var(--tc);border-radius:6px;padding:2px 4px 2px 8px;display:inline-flex;gap:4px;align-items:center}
+.chip button{border:0;padding:0 5px;background:none}
+#busy{position:sticky;top:0;z-index:5;background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin:10px 0;display:flex;gap:10px;align-items:center}
+#busy[hidden]{display:none}
+progress{flex:1}
+.grp h3{margin:16px 0 6px;font-size:15px;word-break:break-all}
+.cnt{background:var(--acb);color:var(--ac);border-radius:10px;padding:0 8px;font-size:13px}
+.empty{color:var(--mut);font-style:italic;margin:0}
+.m,.cx{border:1px solid var(--bd);border-left:5px solid var(--tc,var(--bd));border-radius:6px;padding:8px 10px;margin:6px 0}
+.meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px;color:var(--mut)}
+.meta .tag{color:#222;border-radius:4px;padding:0 7px;font-weight:600}
+.meta button{margin-left:auto;font-size:13px;padding:2px 9px}
+.tx{white-space:pre-wrap;margin-top:4px;word-break:break-word}
+mark{background:var(--hl);color:#222;border-radius:2px}
+.more{width:100%}
+.cx.cur{background:var(--acb);border-left-color:var(--ac)}
+.tr em{color:var(--err)}
+.tr>div+div{margin-top:8px}
+.two .cx{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.two .tr{padding-left:10px;border-left:2px dashed var(--bd)}
+.hd{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 10px 4px;font-size:13px;word-break:break-all}
+@media(max-width:640px){.two .cx,.hd{grid-template-columns:1fr}}
+dialog{width:min(1000px,96vw);max-height:90vh;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:16px}
+dialog::backdrop{background:#0008}
+footer{padding:10px 16px 28px;color:var(--mut);font-size:13px}
+footer a{color:var(--ac)}
+body{border-top:5px solid;border-image:linear-gradient(90deg,#2f9e78,#f59f00,#4c6ef5,#e64980) 1}
+h1{font-size:34px;color:var(--ac);letter-spacing:-.5px}
+.sub{font:italic 19px Georgia,serif;color:var(--tx)}
+section.c1{background:var(--t1);border-top:4px solid #2f9e78}
+section.c2{background:var(--t2);border-top:4px solid #f59f00}
+section.c3{background:var(--t4);border-top:4px solid #e64980}
+section.c4{background:var(--t3);border-top:4px solid #4c6ef5}
+.m{background:var(--card)}
+header{text-align:center}
+input[type=text],select{background:var(--card)}
+select{font:inherit;padding:5px 8px;border:1px solid var(--bd);border-radius:6px;color:var(--tx)}
+.pri:hover{filter:brightness(1.12)}
+dialog{background:var(--t3)}
+dialog .cx{background:var(--card)}
+dialog .cx.cur{background:var(--cur);border-left-color:#e03131}
+.blue,#ctx .more{background:#1c5fd1;border-color:#1c5fd1;color:#fff}
+.lblue{background:#cfe0ff;border-color:#9db9ee;color:#1a3d7c}
+.blue:hover,#ctx .more:hover{filter:brightness(1.12)}
+</style>
+</head>
+<body>
+<header>
+  <h1>SearchTitles</h1>
+  <p class="sub">Buscador de Legendas para Contexto</p>
+  <p>Todos os arquivos são analisados localmente no seu computador. Nenhuma legenda é enviada a nenhum servidor.</p>
+</header>
+<main>
+<section class="card c1">
+  <h2>1. Arquivos de legenda</h2>
+  <div class="drop" id="drop">Arraste arquivos de legenda (SRT, TTML, DFXP, PXTT, TTAL) aqui ou use o botão abaixo</div>
+  <div class="row sp">
+    <div class="row"><button class="pri" id="addFiles">Adicionar arquivos</button><button class="dng" id="clearFiles">Remover todos</button></div>
+    <strong id="fcount">0 arquivos</strong>
+  </div>
+  <input type="file" id="fin" multiple hidden>
+  <ul id="files"></ul>
+</section>
+
+<section class="card c2">
+  <h2>2. Configurações da pesquisa</h2>
+  <div class="row" style="margin-bottom:6px">
+    <strong>Modo:</strong>
+    <label><input type="radio" name="mode" value="live" checked> Tempo real (a partir de 3 caracteres)</label>
+    <label><input type="radio" name="mode" value="terms"> Lista de termos</label>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="cs"> Diferenciar maiúsculas e minúsculas</label>
+    <label><select id="whole"><option value="1">Palavra ou frase inteira</option><option value="0" selected>Parte de palavra ou frase</option></select></label>
+  </div>
+</section>
+
+<section class="card c3">
+  <h2>3. Busca</h2>
+  <div class="row">
+    <div style="flex:1;min-width:200px"><input type="text" id="q" placeholder="Digite uma palavra ou frase" autocomplete="off"></div>
+    <button id="addBtn" class="pri" hidden>Adicionar</button>
+  </div>
+  <div id="hint" class="mut" style="margin-top:6px"></div>
+  <div class="chips" id="chips"></div>
+</section>
+
+<section class="card c4">
+  <div class="row sp"><h2>4. Resultados</h2>
+    <div class="row"><button id="clearRes">Limpar resultados</button><button class="dng" id="reset">Resetar aplicação</button></div></div>
+  <div class="row">
+    <label><input type="checkbox" id="showTags"> Mostrar tags originais</label>
+    <label><input type="checkbox" id="showEmpty"> Mostrar arquivos sem correspondência</label>
+  </div>
+  <div id="busy" hidden><span id="busyTx"></span><progress id="pg"></progress></div>
+  <div id="sum" class="mut" style="margin-top:8px"></div>
+  <div id="results"></div>
+</section>
+</main>
+
+<dialog id="dlg">
+  <div class="row sp" style="margin-bottom:8px"><div style="min-width:0"><h2 style="margin:0">5. Contexto</h2><div id="ctxFile" style="font-size:13px;font-weight:600;word-break:break-all"></div></div>
+    <div class="row"><button id="trBtn" class="blue">Carregar tradução</button><button id="closeDlg" class="lblue">Fechar</button></div></div>
+  <input type="file" id="trIn" hidden>
+  <div id="trInfo" class="mut" style="font-size:13px;margin-bottom:6px"></div>
+  <div id="ctx" style="overflow:auto;max-height:68vh"></div>
+</dialog>
+
+<footer>Adaptação da ferramenta <a href="https://subtricks.vercel.app/" target="_blank" rel="noopener"><strong>Subtricks</strong></a>, desenvolvida por <a href="https://linktr.ee/pedrospj" target="_blank" rel="noopener">Pedro Pereira</a>.</footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const escRx=s=>s.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&');
+const tick=()=>new Promise(r=>setTimeout(r));
+const pad=(n,l=2)=>String(n).padStart(l,'0');
+const fmt=ms=>`${pad(ms/3600000|0)}:${pad(ms/60000%60|0)}:${pad(ms/1000%60|0)},${pad(ms%1000,3)}`;
+const PAL=['#ffe14d','#8ce99a','#74c0fc','#ffa8a8','#d0bfff','#ffc078','#99e9f2','#fcc2d7'];
+const color=t=>PAL[t%PAL.length];
+const LIM=100;
+
+/* ---------- Parsers (extensível) ---------- */
+const Parsers={list:[],register(p){this.list.push(p)},
+  forFile(n){const e=n.split('.').pop().toLowerCase();return this.list.find(p=>p.exts.includes(e))}};
+Parsers.register({id:'srt',exts:['srt'],parse(text){
+  text=text.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+  const T=/(\d+):(\d{1,2}):(\d{1,2})[,.](\d{1,3})\s*-->\s*(\d+):(\d{1,2}):(\d{1,2})[,.](\d{1,3})/;
+  const ms=(h,m,s,f)=>((+h*60+ +m)*60+ +s)*1000+ +f.padEnd(3,'0');
+  const cues=[];
+  for(const b of text.split(/\n\s*\n/)){
+    const L=b.split('\n');let k=0;
+    while(k<L.length&&!T.test(L[k]))k++;
+    if(k>1||k>=L.length)continue;
+    const t=L[k].match(T);
+    const n=k===1&&/^\s*\d+\s*$/.test(L[0])?+L[0]:cues.length+1;
+    cues.push({n,start:ms(t[1],t[2],t[3],t[4]),end:ms(t[5],t[6],t[7],t[8]),raw:L.slice(k+1).join('\n')});
+  }
+  if(!cues.length)throw new Error('nenhuma legenda válida encontrada');
+  return cues;
+}});
+
+/* TTML / DFXP / PXTT (tempo SMPTE com frames, relógio ou offsets) */
+function finish(cues){
+  if(!cues.length)throw new Error('nenhuma legenda válida encontrada');
+  cues.sort((a,b)=>a.start-b.start);cues.forEach((c,i)=>c.n=i+1);return cues;
+}
+function ttmlParse(text){
+  const doc=new DOMParser().parseFromString(text.replace(/^\uFEFF/,''),'application/xml');
+  if(doc.querySelector('parsererror'))throw new Error('XML inválido');
+  const tt=doc.documentElement,fr=+(tt.getAttribute('ttp:frameRate')||30),tr=+(tt.getAttribute('ttp:tickRate')||1e7);
+  const [mn,md]=(tt.getAttribute('ttp:frameRateMultiplier')||'1 1').split(/\s+/).map(Number);
+  const fps=fr*mn/(md||1);
+  const time=v=>{
+    v=(v||'').trim();let m;
+    if((m=v.match(/^(\d+):(\d+):(\d+)[:;](\d+)$/)))return Math.round(((+m[1]*3600+ +m[2]*60+ +m[3])*fr+ +m[4])/fps*1000);
+    if((m=v.match(/^(\d+):(\d+):(\d+(?:[.,]\d+)?)$/)))return Math.round((+m[1]*3600+ +m[2]*60+ +m[3].replace(',','.'))*1000);
+    if((m=v.match(/^([\d.]+)(ms|h|m|s|f|t)$/))){const x=+m[1];return Math.round({h:x*3.6e6,m:x*6e4,s:x*1e3,ms:x,f:x/fps*1e3,t:x/tr*1e3}[m[2]])}
+    return NaN;
+  };
+  const walk=n=>{
+    let o='';
+    for(const k of n.childNodes){
+      if(k.nodeType===3)o+=k.nodeValue.replace(/\s+/g,' ');
+      else if(k.nodeType===1){
+        if(k.localName==='br')o+='\n';
+        else if(k.localName!=='metadata'){
+          let x=walk(k);const st=k.getAttribute('tts:fontStyle'),w=k.getAttribute('tts:fontWeight');
+          if(st==='italic'||st==='oblique')x=`<i>${x}</i>`;
+          if(w==='bold')x=`<b>${x}</b>`;
+          o+=x;
+        }
+      }
+    }
+    return o;
+  };
+  const cues=[];
+  for(const p of doc.getElementsByTagNameNS('*','p')){
+    const s=time(p.getAttribute('begin'));let e=time(p.getAttribute('end'));
+    if(isNaN(e)){const d=time(p.getAttribute('dur'));if(!isNaN(d))e=s+d}
+    const raw=walk(p).split('\n').map(x=>x.trim()).join('\n').trim();
+    if(!isNaN(s)&&!isNaN(e)&&raw)cues.push({start:s,end:e,raw});
+  }
+  return finish(cues);
+}
+Parsers.register({id:'ttml',exts:['ttml','dfxp','pxtt','xml'],parse:ttmlParse});
+
+/* TTAL (JSON; tempos em frames quando meta.timeFormat = FRAMES) */
+Parsers.register({id:'ttal',exts:['ttal'],parse(text){
+  let d;try{d=JSON.parse(text)}catch{throw new Error('JSON inválido')}
+  if(!d||typeof d.events!=='object')throw new Error('estrutura TTAL inesperada');
+  const m=String(d.meta&&d.meta.fps||'').match(/FPS_(\d+)/);
+  const fps={2397:24000/1001,2398:24000/1001,24:24,25:25,2997:30000/1001,30:30,50:50,5994:60000/1001,60:60}[m&&m[1]]||24000/1001;
+  const fm=d.meta&&d.meta.timeFormat==='FRAMES',T=v=>Math.round(fm?v/fps*1000:v);
+  const tg={italic:'i',bold:'b',underline:'u'},cues=[];
+  for(const e of Object.values(d.events)){
+    let t=String(e.txt||'');if(!t.trim())continue;
+    const st=(e.styles||[]).filter(x=>tg[x.type]&&x.to>x.from).sort((a,b)=>b.from-a.from);
+    for(const x of st){const g=tg[x.type];t=t.slice(0,x.from)+`<${g}>`+t.slice(x.from,x.to)+`</${g}>`+t.slice(x.to)}
+    cues.push({start:T(e.start),end:T(e.end),raw:t});
+  }
+  return finish(cues);
+}});
+$('#fin').accept=Parsers.list.flatMap(p=>p.exts.map(e=>'.'+e)).join(',');
+
+/* texto de busca sem tags (<i>, {\an8}...) com mapa para o original */
+const TAG=/<[^>]*>|\{[^}]*\}/g;
+function prepare(c){
+  const raw=c.raw;let plain='',last=0,m;const map=[];let any=false;
+  TAG.lastIndex=0;
+  while((m=TAG.exec(raw))){any=true;plain+=raw.slice(last,m.index);for(let i=last;i<m.index;i++)map.push(i);last=m.index+m[0].length}
+  if(!any){c.plain=raw;c.map=null;return}
+  plain+=raw.slice(last);for(let i=last;i<raw.length;i++)map.push(i);
+  c.plain=plain;c.map=Int32Array.from(map);
+}
+async function readText(f){
+  const b=await f.arrayBuffer();
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(b)}catch{return new TextDecoder('windows-1252').decode(b)}
+}
+async function loadFile(f){
+  const p=Parsers.forFile(f.name);
+  if(!p)throw new Error('formato não suportado');
+  const cues=p.parse(await readText(f));
+  cues.forEach(prepare);
+  return cues;
+}
+
+/* ---------- Estado ---------- */
+const S={files:[],nid:1,terms:[],edit:-1,mode:'live',results:null,trans:null,ctx:null,tok:0};
+const opts=()=>({cs:$('#cs').checked,whole:$('#whole').value==='1'});
+
+function busy(on,txt,pct){
+  $('#busy').hidden=!on;if(!on)return;
+  $('#busyTx').textContent=txt||'';
+  const p=$('#pg');if(pct==null)p.removeAttribute('value');else p.value=pct;
+}
+
+/* ---------- Arquivos ---------- */
+async function addFiles(list){
+  list=[...list];let i=0;
+  for(const f of list){
+    busy(true,`Lendo arquivos… ${++i}/${list.length}`,i/list.length);
+    const e={id:S.nid++,name:f.name,cues:null,error:null};
+    try{e.cues=await loadFile(f)}catch(err){e.error=err.message}
+    S.files.push(e);renderFiles();await tick();
+  }
+  busy(false);
+  runAuto();
+}
+function renderFiles(){
+  const n=S.files.length;
+  $('#fcount').textContent=`${n} arquivo${n===1?'':'s'}`;
+  $('#files').innerHTML=S.files.map(f=>`<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span>
+    <span>${f.error?`<span class="bad">Erro: ${esc(f.error)}</span>`:`<span class="mut">${f.cues.length} legendas</span>`}
+    <button data-rm="${f.id}" aria-label="Remover ${esc(f.name)}">✕</button></span></li>`).join('');
+}
+
+/* ---------- Busca ---------- */
+function buildRx(term){
+  const o=opts();let s=escRx(term).replace(/\s+/g,'\\s+');
+  if(o.whole)s=`(?<![\\p{L}\\p{N}_])${s}(?![\\p{L}\\p{N}_])`;
+  return new RegExp(s,'gu'+(o.cs?'':'i'));
+}
+async function runSearch(terms){
+  const tok=++S.tok,files=S.files.filter(f=>f.cues);
+  if(!terms.length||!files.length){S.results=null;renderResults();return}
+  const rxs=terms.map(buildRx),groups=[];let last=performance.now();
+  for(let k=0;k<files.length;k++){
+    const f=files[k],matches=[];
+    busy(true,`Pesquisando… ${k+1}/${files.length}`,k/files.length);
+    for(let i=0;i<f.cues.length;i++){
+      const p=f.cues[i].plain;
+      for(let t=0;t<rxs.length;t++){rxs[t].lastIndex=0;if(rxs[t].test(p))matches.push({i,t})}
+    }
+    groups.push({fid:f.id,matches,lim:LIM});
+    if(performance.now()-last>30){await tick();last=performance.now();if(tok!==S.tok)return}
+  }
+  if(tok!==S.tok)return;
+  S.results={terms:terms.slice(),rxs,groups};
+  busy(false);renderResults();
+}
+function runTerms(){
+  if(S.mode!=='terms')return;
+  if(!S.terms.length){S.tok++;S.results=null;busy(false);renderResults();return}
+  runSearch(S.terms);
+}
+const runAuto=()=>S.mode==='live'?runLive():runTerms();
+function runLive(){
+  if(S.mode!=='live')return;
+  const q=$('#q').value;
+  if(q.length<3||!q.trim()){S.tok++;S.results=null;busy(false);renderResults();return}
+  runSearch([q]);
+}
+
+/* ---------- Destaque ---------- */
+function hl(c,rx,tags,col){
+  const flags=new Uint8Array(c.raw.length);let m;
+  if(rx){
+    rx.lastIndex=0;
+    while((m=rx.exec(c.plain))){
+      for(let i=m.index;i<m.index+m[0].length;i++)flags[c.map?c.map[i]:i]=1;
+      if(!m[0].length)rx.lastIndex++;
+    }
+  }
+  let src=c.raw,fl=flags;
+  if(!tags){src=c.plain;fl=c.map?Uint8Array.from(c.map,r=>flags[r]):flags}
+  let out='',i=0;
+  while(i<src.length){
+    let j=i;const on=fl[i];
+    while(j<src.length&&fl[j]===on)j++;
+    const t=esc(src.slice(i,j));out+=on?`<mark style="background:${col||PAL[0]}">${t}</mark>`:t;i=j;
+  }
+  return out;
+}
+
+/* ---------- Resultados ---------- */
+function renderResults(){
+  const R=S.results,box=$('#results'),tags=$('#showTags').checked,showEmpty=$('#showEmpty').checked;
+  if(!R){box.innerHTML='';$('#sum').textContent='';return}
+  let html='',total=0,nf=0;const multi=R.terms.length>1;
+  for(const g of R.groups){
+    const f=S.files.find(x=>x.id===g.fid);if(!f)continue;
+    if(!g.matches.length){
+      if(showEmpty)html+=`<div class="grp"><h3>${esc(f.name)}</h3><p class="empty">Nenhum termo encontrado</p></div>`;
+      continue;
+    }
+    total+=g.matches.length;nf++;
+    html+=`<div class="grp"><h3>${esc(f.name)} <span class="cnt">${g.matches.length}</span></h3>`;
+    for(const m of g.matches.slice(0,g.lim)){
+      const c=f.cues[m.i];
+      html+=`<article class="m"${multi?` style="--tc:${color(m.t)}"`:''}><div class="meta">${multi?`<span class="tag" style="background:${color(m.t)}">${esc(R.terms[m.t])}</span>`:''}
+        <span>#${c.n}</span><span>${fmt(c.start)}</span>
+        <button data-ctx="${f.id}:${m.i}:${m.t}">Mostrar contexto</button></div>
+        <div class="tx">${hl(c,R.rxs[m.t],tags,color(m.t))}</div></article>`;
+    }
+    if(g.matches.length>g.lim)html+=`<button class="more" data-more="${g.fid}">Mostrar mais (${g.matches.length-g.lim} restantes)</button>`;
+    html+='</div>';
+  }
+  box.innerHTML=html;
+  $('#sum').textContent=total?`${total} correspondência${total===1?'':'s'} em ${nf} arquivo${nf===1?'':'s'}.`:'Nenhuma correspondência encontrada.';
+}
+
+/* ---------- Contexto e tradução ---------- */
+/* Pareamento: candidata se há sobreposição real de tempo E (início ou fim a ≤1s do original, ou sobreposição ≥50% da menor duração).
+   Ordenada por início; várias candidatas são exibidas; nenhuma → "não encontrada". */
+function pair(c,T){
+  const tol=1000,out=[],dc=c.end-c.start;
+  for(const t of T){
+    if(t.start>c.end+tol)break;
+    const ov=Math.min(c.end,t.end)-Math.max(c.start,t.start);
+    if(ov<=0)continue;
+    const md=Math.min(dc,t.end-t.start);
+    if(Math.abs(t.start-c.start)<=tol||Math.abs(t.end-c.end)<=tol||ov>=.5*md)out.push(t);
+  }
+  return out;
+}
+function openCtx(fid,i,t){
+  S.ctx={fid,i,rx:S.results.rxs[t],term:S.results.terms[t],col:color(t),multi:S.results.terms.length>1,bf:3,af:3};
+  renderCtx();$('#dlg').showModal();
+}
+function renderCtx(){
+  const X=S.ctx;if(!X)return;
+  const f=S.files.find(x=>x.id===X.fid);if(!f)return;
+  $('#ctxFile').textContent=f.name;
+  const tags=$('#showTags').checked,a=Math.max(0,X.i-X.bf),b=Math.min(f.cues.length-1,X.i+X.af),T=S.trans;
+  let h=T?`<div class="hd"><strong>${esc(f.name)}</strong><strong>${esc(T.name)}</strong></div>`:'';
+  if(a>0)h+=`<button class="more" data-cm="b">Mostrar mais contexto anterior</button>`;
+  for(let k=a;k<=b;k++){
+    const c=f.cues[k],cur=k===X.i;
+    h+=`<div class="cx${cur?' cur':''}"><div><div class="meta"><span>#${c.n}</span><span>${fmt(c.start)} → ${fmt(c.end)}</span>${cur&&X.multi?`<span class="tag" style="background:${X.col}">${esc(X.term)}</span>`:''}</div>
+      <div class="tx">${hl(c,cur?X.rx:null,tags,X.col)}</div></div>`;
+    if(T){
+      const p=pair(c,T.cues);
+      h+=`<div class="tr">${p.length?p.map(t=>`<div><div class="meta">${fmt(t.start)} → ${fmt(t.end)}</div><div class="tx">${esc(tags?t.raw:t.plain)}</div></div>`).join(''):'<em>Tradução não encontrada.</em>'}</div>`;
+    }
+    h+='</div>';
+  }
+  if(b<f.cues.length-1)h+=`<button class="more" data-cm="a">Mostrar mais contexto posterior</button>`;
+  const box=$('#ctx');box.className=T?'two':'';box.innerHTML=h;
+  $('#trBtn').textContent=T?'Trocar tradução':'Carregar tradução';
+  $('#trInfo').textContent='';
+}
+
+/* ---------- Termos ---------- */
+function renderTerms(){
+  $('#chips').innerHTML=S.terms.map((t,i)=>`<span class="chip" style="--tc:${color(i)}"><b>${esc(t)}</b>
+    <button data-edit="${i}" aria-label="Editar">✎</button><button data-del="${i}" aria-label="Excluir">✕</button></span>`).join('');
+}
+function addTerm(){
+  const v=$('#q').value.trim();if(!v)return;
+  if(S.edit>=0){S.terms[S.edit]=v;S.edit=-1}
+  else if(!S.terms.includes(v))S.terms.push(v);
+  $('#q').value='';$('#addBtn').textContent='Adicionar';renderTerms();runTerms();
+}
+function setMode(m){
+  S.mode=m;const live=m==='live';
+  S.terms=[];S.edit=-1;$('#q').value='';$('#addBtn').textContent='Adicionar';renderTerms();
+  $('#addBtn').hidden=live;$('#chips').hidden=live;
+  $('#hint').textContent=live?'A busca começa automaticamente com 3 ou mais caracteres (espaços contam).':'Adicione termos (Enter): a busca é atualizada automaticamente. Cada termo é buscado de forma independente.';
+  S.tok++;S.results=null;renderResults();busy(false);
+  if(live)runLive();
+}
+
+/* ---------- Controles ---------- */
+function clearResults(){S.tok++;S.results=null;S.ctx=null;$('#dlg').open&&$('#dlg').close();busy(false);renderResults()}
+function resetAll(){
+  if(!confirm('Remover arquivos, termos, resultados e traduções carregados?'))return;
+  clearResults();S.files=[];S.terms=[];S.edit=-1;S.trans=null;
+  $('#q').value='';$('#addBtn').textContent='Adicionar';renderFiles();renderTerms();
+}
+
+/* ---------- Eventos ---------- */
+$('#addFiles').onclick=()=>$('#fin').click();
+$('#fin').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+$('#clearFiles').onclick=()=>{S.files=[];renderFiles();runAuto()};
+const drop=$('#drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on')}));
+drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+$('#files').onclick=e=>{
+  const id=e.target.dataset.rm;if(!id)return;
+  S.files=S.files.filter(f=>f.id!==+id);renderFiles();renderResults();
+};
+document.querySelectorAll('[name=mode]').forEach(r=>r.onchange=()=>setMode(r.value));
+let dt;
+$('#q').addEventListener('input',()=>{if(S.mode!=='live')return;clearTimeout(dt);dt=setTimeout(runLive,250)});
+$('#q').addEventListener('keydown',e=>{if(e.key==='Enter'&&S.mode==='terms')addTerm()});
+$('#addBtn').onclick=addTerm;
+$('#chips').onclick=e=>{
+  const d=e.target.dataset;
+  if(d.del!==undefined){S.terms.splice(+d.del,1);S.edit=-1;$('#addBtn').textContent='Adicionar';renderTerms();runTerms()}
+  else if(d.edit!==undefined){S.edit=+d.edit;$('#q').value=S.terms[S.edit];$('#q').focus();$('#addBtn').textContent='Salvar'}
+};
+['cs','whole'].forEach(id=>$('#'+id).onchange=runAuto);
+['showTags','showEmpty'].forEach(id=>$('#'+id).onchange=renderResults);
+$('#results').onclick=e=>{
+  const d=e.target.dataset;
+  if(d.ctx){const[a,b,c]=d.ctx.split(':').map(Number);openCtx(a,b,c)}
+  else if(d.more){const g=S.results.groups.find(x=>x.fid===+d.more);g.lim+=LIM*2;renderResults()}
+};
+$('#clearRes').onclick=clearResults;
+$('#reset').onclick=resetAll;
+$('#closeDlg').onclick=()=>$('#dlg').close();
+$('#ctx').onclick=e=>{
+  const d=e.target.dataset.cm;if(!d||!S.ctx)return;
+  const box=$('#ctx'),h0=box.scrollHeight,t0=box.scrollTop;
+  if(d==='b')S.ctx.bf+=3;else S.ctx.af+=3;
+  renderCtx();if(d==='b')box.scrollTop=t0+box.scrollHeight-h0;
+};
+$('#dlg').addEventListener('close',()=>{S.trans=null;S.ctx=null;$('#trInfo').textContent=''});
+$('#dlg').addEventListener('click',e=>{if(e.target===$('#dlg'))$('#dlg').close()});
+$('#trBtn').onclick=()=>$('#trIn').click();
+$('#trIn').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  $('#trInfo').textContent='Lendo tradução…';
+  try{
+    const cues=await loadFile(f);cues.sort((x,y)=>x.start-y.start);
+    S.trans={name:f.name,cues};
+  }catch(err){$('#trInfo').textContent=`Não foi possível ler “${f.name}”: ${err.message}`;return}
+  renderCtx();
+};
+
+renderFiles();setMode('live');
+</script>
+</body>
+</html>
