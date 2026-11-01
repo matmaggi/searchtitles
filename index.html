@@ -84,6 +84,17 @@ dialog .cx.cur{background:var(--cur);border-left-color:#e03131}
 .blue,#ctx .more{background:#1c5fd1;border-color:#1c5fd1;color:#fff}
 .lblue{background:#cfe0ff;border-color:#9db9ee;color:#1a3d7c}
 .blue:hover,#ctx .more:hover{filter:brightness(1.12)}
+.meta button+button{margin-left:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.cols .tr{padding-left:10px;border-left:2px dashed var(--bd)}
+.cols .tx{margin-top:0}
+@media(max-width:640px){.cols{grid-template-columns:1fr}}
+.m{display:grid;grid-template-columns:1fr 124px;gap:12px;align-items:start}
+.mb{min-width:0}
+.bt{display:flex;flex-direction:column;gap:6px}
+.bt button{width:100%;font-size:12.5px;padding:3px 6px;white-space:nowrap}
+.cols .meta{min-height:22px}
+@media(max-width:640px){.m{grid-template-columns:1fr}.bt{flex-direction:row}}
 </style>
 </head>
 <body>
@@ -143,11 +154,11 @@ dialog .cx.cur{background:var(--cur);border-left-color:#e03131}
 <dialog id="dlg">
   <div class="row sp" style="margin-bottom:8px"><div style="min-width:0"><h2 style="margin:0">5. Contexto</h2><div id="ctxFile" style="font-size:13px;font-weight:600;word-break:break-all"></div></div>
     <div class="row"><button id="trBtn" class="blue">Carregar tradução</button><button id="closeDlg" class="lblue">Fechar</button></div></div>
-  <input type="file" id="trIn" hidden>
   <div id="trInfo" class="mut" style="font-size:13px;margin-bottom:6px"></div>
   <div id="ctx" style="overflow:auto;max-height:68vh"></div>
 </dialog>
 
+<input type="file" id="trIn" hidden>
 <footer>Adaptação da ferramenta <a href="https://subtricks.vercel.app/" target="_blank" rel="noopener"><strong>Subtricks</strong></a>, desenvolvida por <a href="https://linktr.ee/pedrospj" target="_blank" rel="noopener">Pedro Pereira</a>.</footer>
 
 <script>
@@ -244,6 +255,7 @@ Parsers.register({id:'ttal',exts:['ttal'],parse(text){
   return finish(cues);
 }});
 $('#fin').accept=Parsers.list.flatMap(p=>p.exts.map(e=>'.'+e)).join(',');
+$('#trIn').accept=$('#fin').accept;
 
 /* texto de busca sem tags (<i>, {\an8}...) com mapa para o original */
 const TAG=/<[^>]*>|\{[^}]*\}/g;
@@ -268,7 +280,7 @@ async function loadFile(f){
 }
 
 /* ---------- Estado ---------- */
-const S={files:[],nid:1,terms:[],edit:-1,mode:'live',results:null,trans:null,ctx:null,tok:0};
+const S={files:[],nid:1,terms:[],edit:-1,mode:'live',results:null,trans:{},ctx:null,tok:0};
 const opts=()=>({cs:$('#cs').checked,whole:$('#whole').value==='1'});
 
 function busy(on,txt,pct){
@@ -362,18 +374,19 @@ function renderResults(){
   let html='',total=0,nf=0;const multi=R.terms.length>1;
   for(const g of R.groups){
     const f=S.files.find(x=>x.id===g.fid);if(!f)continue;
+    const T=S.trans[f.id];
     if(!g.matches.length){
       if(showEmpty)html+=`<div class="grp"><h3>${esc(f.name)}</h3><p class="empty">Nenhum termo encontrado</p></div>`;
       continue;
     }
     total+=g.matches.length;nf++;
-    html+=`<div class="grp"><h3>${esc(f.name)} <span class="cnt">${g.matches.length}</span></h3>`;
+    html+=`<div class="grp"><h3>${esc(f.name)} <span class="cnt">${g.matches.length}</span>${T?` <small class="mut">· Tradução: ${esc(T.name)}</small>`:''}</h3>`;
     for(const m of g.matches.slice(0,g.lim)){
       const c=f.cues[m.i];
-      html+=`<article class="m"${multi?` style="--tc:${color(m.t)}"`:''}><div class="meta">${multi?`<span class="tag" style="background:${color(m.t)}">${esc(R.terms[m.t])}</span>`:''}
-        <span>#${c.n}</span><span>${fmt(c.start)}</span>
-        <button data-ctx="${f.id}:${m.i}:${m.t}">Mostrar contexto</button></div>
-        <div class="tx">${hl(c,R.rxs[m.t],tags,color(m.t))}</div></article>`;
+      const H=hl(c,R.rxs[m.t],tags,color(m.t));
+      const mt=`<div class="meta">${multi?`<span class="tag" style="background:${color(m.t)}">${esc(R.terms[m.t])}</span>`:''}<span>#${c.n}</span><span>${fmt(c.start)}</span></div>`;
+      html+=`<article class="m"${multi?` style="--tc:${color(m.t)}"`:''}><div class="mb">${T?`<div class="cols"><div>${mt}<div class="tx">${H}</div></div>${trHtml(c,T,tags,true)}</div>`:`${mt}<div class="tx">${H}</div>`}</div>
+        <div class="bt"><button class="blue" data-tr="${f.id}">${T?'Trocar tradução':'Carregar tradução'}</button><button data-ctx="${f.id}:${m.i}:${m.t}">Mostrar contexto</button></div></article>`;
     }
     if(g.matches.length>g.lim)html+=`<button class="more" data-more="${g.fid}">Mostrar mais (${g.matches.length-g.lim} restantes)</button>`;
     html+='</div>';
@@ -396,6 +409,10 @@ function pair(c,T){
   }
   return out;
 }
+function trHtml(c,T,tags,short){
+  const p=pair(c,T.cues);
+  return `<div class="tr">${p.length?p.map(t=>`<div><div class="meta">${short?fmt(t.start):`${fmt(t.start)} → ${fmt(t.end)}`}</div><div class="tx">${esc(tags?t.raw:t.plain)}</div></div>`).join(''):'<em>Tradução não encontrada.</em>'}</div>`;
+}
 function openCtx(fid,i,t){
   S.ctx={fid,i,rx:S.results.rxs[t],term:S.results.terms[t],col:color(t),multi:S.results.terms.length>1,bf:3,af:3};
   renderCtx();$('#dlg').showModal();
@@ -404,7 +421,7 @@ function renderCtx(){
   const X=S.ctx;if(!X)return;
   const f=S.files.find(x=>x.id===X.fid);if(!f)return;
   $('#ctxFile').textContent=f.name;
-  const tags=$('#showTags').checked,a=Math.max(0,X.i-X.bf),b=Math.min(f.cues.length-1,X.i+X.af),T=S.trans;
+  const tags=$('#showTags').checked,a=Math.max(0,X.i-X.bf),b=Math.min(f.cues.length-1,X.i+X.af),T=S.trans[X.fid];
   let h=T?`<div class="hd"><strong>${esc(f.name)}</strong><strong>${esc(T.name)}</strong></div>`:'';
   if(a>0)h+=`<button class="more" data-cm="b">Mostrar mais contexto anterior</button>`;
   for(let k=a;k<=b;k++){
@@ -412,8 +429,7 @@ function renderCtx(){
     h+=`<div class="cx${cur?' cur':''}"><div><div class="meta"><span>#${c.n}</span><span>${fmt(c.start)} → ${fmt(c.end)}</span>${cur&&X.multi?`<span class="tag" style="background:${X.col}">${esc(X.term)}</span>`:''}</div>
       <div class="tx">${hl(c,cur?X.rx:null,tags,X.col)}</div></div>`;
     if(T){
-      const p=pair(c,T.cues);
-      h+=`<div class="tr">${p.length?p.map(t=>`<div><div class="meta">${fmt(t.start)} → ${fmt(t.end)}</div><div class="tx">${esc(tags?t.raw:t.plain)}</div></div>`).join(''):'<em>Tradução não encontrada.</em>'}</div>`;
+      h+=trHtml(c,T,tags);
     }
     h+='</div>';
   }
@@ -447,21 +463,21 @@ function setMode(m){
 function clearResults(){S.tok++;S.results=null;S.ctx=null;$('#dlg').open&&$('#dlg').close();busy(false);renderResults()}
 function resetAll(){
   if(!confirm('Remover arquivos, termos, resultados e traduções carregados?'))return;
-  clearResults();S.files=[];S.terms=[];S.edit=-1;S.trans=null;
+  clearResults();S.files=[];S.terms=[];S.edit=-1;S.trans={};
   $('#q').value='';$('#addBtn').textContent='Adicionar';renderFiles();renderTerms();
 }
 
 /* ---------- Eventos ---------- */
 $('#addFiles').onclick=()=>$('#fin').click();
 $('#fin').onchange=e=>{addFiles(e.target.files);e.target.value=''};
-$('#clearFiles').onclick=()=>{S.files=[];renderFiles();runAuto()};
+$('#clearFiles').onclick=()=>{S.files=[];S.trans={};renderFiles();runAuto()};
 const drop=$('#drop');
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on')}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on')}));
 drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
 $('#files').onclick=e=>{
   const id=e.target.dataset.rm;if(!id)return;
-  S.files=S.files.filter(f=>f.id!==+id);renderFiles();renderResults();
+  S.files=S.files.filter(f=>f.id!==+id);delete S.trans[+id];renderFiles();renderResults();
 };
 document.querySelectorAll('[name=mode]').forEach(r=>r.onchange=()=>setMode(r.value));
 let dt;
@@ -478,6 +494,7 @@ $('#chips').onclick=e=>{
 $('#results').onclick=e=>{
   const d=e.target.dataset;
   if(d.ctx){const[a,b,c]=d.ctx.split(':').map(Number);openCtx(a,b,c)}
+  else if(d.tr)askTrans(+d.tr);
   else if(d.more){const g=S.results.groups.find(x=>x.fid===+d.more);g.lim+=LIM*2;renderResults()}
 };
 $('#clearRes').onclick=clearResults;
@@ -489,17 +506,18 @@ $('#ctx').onclick=e=>{
   if(d==='b')S.ctx.bf+=3;else S.ctx.af+=3;
   renderCtx();if(d==='b')box.scrollTop=t0+box.scrollHeight-h0;
 };
-$('#dlg').addEventListener('close',()=>{S.trans=null;S.ctx=null;$('#trInfo').textContent=''});
+$('#dlg').addEventListener('close',()=>{S.ctx=null;$('#trInfo').textContent=''});
 $('#dlg').addEventListener('click',e=>{if(e.target===$('#dlg'))$('#dlg').close()});
-$('#trBtn').onclick=()=>$('#trIn').click();
+$('#trBtn').onclick=()=>askTrans(S.ctx.fid);
+let trTarget=0;
+function askTrans(fid){trTarget=fid;$('#trIn').click()}
 $('#trIn').onchange=async e=>{
-  const f=e.target.files[0];e.target.value='';if(!f)return;
-  $('#trInfo').textContent='Lendo tradução…';
-  try{
-    const cues=await loadFile(f);cues.sort((x,y)=>x.start-y.start);
-    S.trans={name:f.name,cues};
-  }catch(err){$('#trInfo').textContent=`Não foi possível ler “${f.name}”: ${err.message}`;return}
-  renderCtx();
+  const f=e.target.files[0],fid=trTarget;e.target.value='';if(!f)return;
+  busy(true,'Lendo tradução…');
+  try{const cues=await loadFile(f);cues.sort((x,y)=>x.start-y.start);S.trans[fid]={name:f.name,cues}}
+  catch(err){busy(false);alert(`Não foi possível ler “${f.name}”: ${err.message}`);return}
+  busy(false);renderResults();
+  if(S.ctx&&S.ctx.fid===fid&&$('#dlg').open)renderCtx();
 };
 
 renderFiles();setMode('live');
