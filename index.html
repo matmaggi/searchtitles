@@ -95,6 +95,9 @@ dialog .cx.cur{background:var(--cur);border-left-color:#e03131}
 .bt button{width:100%;font-size:12.5px;padding:3px 6px;white-space:nowrap}
 .cols .meta{min-height:22px}
 @media(max-width:640px){.m{grid-template-columns:1fr}.bt{flex-direction:row}}
+.bdg{font-size:11px;padding:0 7px;border-radius:9px;background:var(--acb);color:var(--ac);margin-right:6px}
+.ol>div+div{margin-top:8px}
+.ol em{color:var(--err)}
 </style>
 </head>
 <body>
@@ -280,6 +283,56 @@ async function loadFile(f){
   return cues;
 }
 
+/* ---------- Pareamento automático por nome ---------- */
+const LANG=new Set(['en','eng','english','pt','br','ptbr','por','portuguese']);
+const NOISE=new Set([...LANG,'source','translation','template','subtitle','subtitles','language','mezz','full']);
+/* role: 's' origem, 't' tradução. key: nome sem idioma, data/hora, versão e fps. */
+function nameInfo(name){
+  const ex=Parsers.list.flatMap(p=>p.exts).join('|');
+  let n=name.replace(new RegExp(`\\.(${ex})$`,'i'),'');
+  const pre=n.match(/^(en|pt)[-_]/i);
+  n=n.replace(/\d{4}[-._]\d{2}[-._]\d{2}T[\d\-._:]+(UTC)?/gi,' ').replace(/FPS_?\d+/gi,' ')
+    .replace(/(?<!\d)23[.,]9[78](?!\d)/g,' ').replace(/(?<![A-Za-z])V\d+([._]\d+)*(?![A-Za-z0-9])/gi,' ');
+  const t=n.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean),has=x=>t.includes(x);
+  let role=null;
+  if(pre)role=pre[1].toLowerCase()==='en'?'s':'t';
+  else if(has('translation'))role='t';
+  else if(has('source')||has('template'))role='s';
+  else{
+    const en=['en','eng','english'].some(has),pt=['pt','ptbr','por','portuguese'].some(has);
+    role=en&&!pt?'s':pt&&!en?'t':(has('subtitle')||has('subtitles'))?'t':null;
+  }
+  const key=[...new Set(t.filter(x=>!NOISE.has(x)))];
+  return{role,key,dg:key.filter(x=>/\d/.test(x)).sort().join()};
+}
+const pfx=(s,l)=>s.length>=3&&l.length>s.length&&l.startsWith(s)&&/^\p{L}+$/u.test(l.slice(s.length));
+const tm=(x,y)=>x===y||pfx(x,y)||pfx(y,x);
+/* números (episódio, temporada, ID) precisam ser idênticos; o resto por similaridade */
+function sim(a,b){
+  if(!a.key.length||!b.key.length||a.dg!==b.dg)return 0;
+  let m=0;for(const x of a.key)if(b.key.some(y=>tm(x,y)))m++;
+  return 2*m/(a.key.length+b.key.length);
+}
+const sortedCues=f=>f.sc||(f.sc=[...f.cues].sort((x,y)=>x.start-y.start));
+/* arquivo de tradução pareado: mostra o original à esquerda e o texto pesquisado (destacado) à direita */
+const isRev=f=>f.role==='t'&&f.partner&&!S.trans[f.id];
+function srcHtml(c,P,tags,short){
+  const p=pair(c,sortedCues(P));
+  return `<div class="ol">${p.length?p.map(t=>`<div><div class="meta">${short?fmt(t.start):`${fmt(t.start)} → ${fmt(t.end)}`}</div><div class="tx">${esc(tags?t.raw:t.plain)}</div></div>`).join(''):'<em>Original não encontrado.</em>'}</div>`;
+}
+function autoPair(){
+  for(const k in S.trans)if(S.trans[k].auto)delete S.trans[k];
+  S.files.forEach(f=>f.pw=f.partner=null);
+  const ok=S.files.filter(f=>f.cues&&f.role),T=ok.filter(f=>f.role==='t'),c=[];
+  for(const a of ok.filter(f=>f.role==='s'))for(const b of T){const v=sim(a,b);if(v>=.8)c.push([v,a,b])}
+  c.sort((x,y)=>y[0]-x[0]);
+  const us=new Set(),ut=new Set();
+  for(const[,a,b]of c){
+    if(us.has(a.id)||ut.has(b.id))continue;
+    us.add(a.id);ut.add(b.id);a.pw=b.name;b.pw=a.name;a.partner=b;b.partner=a;
+    if(!S.trans[a.id])S.trans[a.id]={name:b.name,cues:sortedCues(b),auto:true};
+  }
+}
 /* ---------- Estado ---------- */
 const S={files:[],nid:1,terms:[],edit:-1,mode:'live',results:null,trans:{},ctx:null,tok:0};
 const opts=()=>({cs:$('#cs').checked,whole:$('#whole').value==='1'});
@@ -296,17 +349,17 @@ async function addFiles(list){
   for(const f of list){
     busy(true,`Lendo arquivos… ${++i}/${list.length}`,i/list.length);
     const e={id:S.nid++,name:f.name,cues:null,error:null};
-    try{e.cues=await loadFile(f)}catch(err){e.error=err.message}
+    try{e.cues=await loadFile(f);Object.assign(e,nameInfo(f.name))}catch(err){e.error=err.message}
     S.files.push(e);renderFiles();await tick();
   }
   busy(false);
-  runAuto();
+  autoPair();renderFiles();runAuto();
 }
 function renderFiles(){
   const n=S.files.length;
   $('#fcount').textContent=`${n} arquivo${n===1?'':'s'}`;
   $('#files').innerHTML=S.files.map(f=>`<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span>
-    <span>${f.error?`<span class="bad">Erro: ${esc(f.error)}</span>`:`<span class="mut">${f.cues.length} legendas</span>`}
+    <span>${f.error?`<span class="bad">Erro: ${esc(f.error)}</span>`:`${f.role?`<span class="bdg">${f.role==='s'?'origem':'tradução'}</span>`:''}${f.pw?`<span class="bdg" title="${esc(f.pw)}">⇄ pareado</span>`:''}<span class="mut">${f.cues.length} legendas</span>`}
     <button data-rm="${f.id}" aria-label="Remover ${esc(f.name)}">✕</button></span></li>`).join('');
 }
 
@@ -375,19 +428,19 @@ function renderResults(){
   let html='',total=0,nf=0;const multi=R.terms.length>1;
   for(const g of R.groups){
     const f=S.files.find(x=>x.id===g.fid);if(!f)continue;
-    const T=S.trans[f.id];
+    const T=S.trans[f.id],P=isRev(f)?f.partner:null;
     if(!g.matches.length){
       if(showEmpty)html+=`<div class="grp"><h3>${esc(f.name)}</h3><p class="empty">Nenhum termo encontrado</p></div>`;
       continue;
     }
     total+=g.matches.length;nf++;
-    html+=`<div class="grp"><h3>${esc(f.name)} <span class="cnt">${g.matches.length}</span>${T?` <small class="mut">· Tradução: ${esc(T.name)}</small>`:''}</h3>`;
+    html+=`<div class="grp"><h3>${esc(f.name)} <span class="cnt">${g.matches.length}</span>${P?` <small class="mut">· Original (automático): ${esc(P.name)}</small>`:T?` <small class="mut">· Tradução${T.auto?' (automática)':''}: ${esc(T.name)}</small>`:''}</h3>`;
     for(const m of g.matches.slice(0,g.lim)){
       const c=f.cues[m.i];
       const H=hl(c,R.rxs[m.t],tags,color(m.t));
       const mt=`<div class="meta">${multi?`<span class="tag" style="background:${color(m.t)}">${esc(R.terms[m.t])}</span>`:''}<span>#${c.n}</span><span>${fmt(c.start)}</span></div>`;
-      html+=`<article class="m"${multi?` style="--tc:${color(m.t)}"`:''}><div class="mb">${T?`<div class="cols"><div>${mt}<div class="tx">${H}</div></div>${trHtml(c,T,tags,true)}</div>`:`${mt}<div class="tx">${H}</div>`}</div>
-        <div class="bt"><button class="blue" data-tr="${f.id}">${T?'Trocar tradução':'Carregar tradução'}</button><button data-ctx="${f.id}:${m.i}:${m.t}">Mostrar contexto</button></div></article>`;
+      html+=`<article class="m"${multi?` style="--tc:${color(m.t)}"`:''}><div class="mb">${P?`<div class="cols">${srcHtml(c,P,tags,true)}<div class="tr"><div>${mt}<div class="tx">${H}</div></div></div></div>`:T?`<div class="cols"><div>${mt}<div class="tx">${H}</div></div>${trHtml(c,T,tags,true)}</div>`:`${mt}<div class="tx">${H}</div>`}</div>
+        <div class="bt">${P?'':`<button class="blue" data-tr="${f.id}">${T?'Trocar tradução':'Carregar tradução'}</button>`}<button data-ctx="${f.id}:${m.i}:${m.t}">Mostrar contexto</button></div></article>`;
     }
     if(g.matches.length>g.lim)html+=`<button class="more" data-more="${g.fid}">Mostrar mais (${g.matches.length-g.lim} restantes)</button>`;
     html+='</div>';
@@ -422,20 +475,17 @@ function renderCtx(){
   const X=S.ctx;if(!X)return;
   const f=S.files.find(x=>x.id===X.fid);if(!f)return;
   $('#ctxFile').textContent=f.name;
-  const tags=$('#showTags').checked,a=Math.max(0,X.i-X.bf),b=Math.min(f.cues.length-1,X.i+X.af),T=S.trans[X.fid];
-  let h=T?`<div class="hd"><strong>${esc(f.name)}</strong><strong>${esc(T.name)}</strong></div>`:'';
+  const tags=$('#showTags').checked,a=Math.max(0,X.i-X.bf),b=Math.min(f.cues.length-1,X.i+X.af),T=S.trans[X.fid],P=isRev(f)?f.partner:null;
+  let h=P?`<div class="hd"><strong>${esc(P.name)}</strong><strong>${esc(f.name)}</strong></div>`:T?`<div class="hd"><strong>${esc(f.name)}</strong><strong>${esc(T.name)}</strong></div>`:'';
   if(a>0)h+=`<button class="more" data-cm="b">Mostrar mais contexto anterior</button>`;
   for(let k=a;k<=b;k++){
     const c=f.cues[k],cur=k===X.i;
-    h+=`<div class="cx${cur?' cur':''}"><div><div class="meta"><span>#${c.n}</span><span>${fmt(c.start)} → ${fmt(c.end)}</span>${cur&&X.multi?`<span class="tag" style="background:${X.col}">${esc(X.term)}</span>`:''}</div>
+    const own=`<div><div class="meta"><span>#${c.n}</span><span>${fmt(c.start)} → ${fmt(c.end)}</span>${cur&&X.multi?`<span class="tag" style="background:${X.col}">${esc(X.term)}</span>`:''}</div>
       <div class="tx">${hl(c,cur?X.rx:null,tags,X.col)}</div></div>`;
-    if(T){
-      h+=trHtml(c,T,tags);
-    }
-    h+='</div>';
+    h+=`<div class="cx${cur?' cur':''}">${P?`${srcHtml(c,P,tags)}<div class="tr">${own}</div>`:own+(T?trHtml(c,T,tags):'')}</div>`;
   }
   if(b<f.cues.length-1)h+=`<button class="more" data-cm="a">Mostrar mais contexto posterior</button>`;
-  const box=$('#ctx');box.className=T?'two':'';box.innerHTML=h;
+  const box=$('#ctx');box.className=T||P?'two':'';$('#trBtn').hidden=!!P;box.innerHTML=h;
   $('#trBtn').textContent=T?'Trocar tradução':'Carregar tradução';
   $('#trInfo').textContent='';
 }
@@ -478,7 +528,7 @@ const drop=$('#drop');
 drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
 $('#files').onclick=e=>{
   const id=e.target.dataset.rm;if(!id)return;
-  S.files=S.files.filter(f=>f.id!==+id);delete S.trans[+id];renderFiles();renderResults();
+  S.files=S.files.filter(f=>f.id!==+id);delete S.trans[+id];autoPair();renderFiles();renderResults();
 };
 document.querySelectorAll('[name=mode]').forEach(r=>r.onchange=()=>setMode(r.value));
 let dt;
