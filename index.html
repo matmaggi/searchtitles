@@ -154,6 +154,7 @@ dialog .cx.cur{background:var(--cur);border-left-color:#e03131}
 <dialog id="dlg">
   <div class="row sp" style="margin-bottom:8px"><div style="min-width:0"><h2 style="margin:0">5. Contexto</h2><div id="ctxFile" style="font-size:13px;font-weight:600;word-break:break-all"></div></div>
     <div class="row"><button id="trBtn" class="blue">Carregar tradução</button><button id="closeDlg" class="lblue">Fechar</button></div></div>
+  <label style="margin:0 0 6px"><input type="checkbox" id="showTags2"> Mostrar tags originais</label>
   <div id="trInfo" class="mut" style="font-size:13px;margin-bottom:6px"></div>
   <div id="ctx" style="overflow:auto;max-height:68vh"></div>
 </dialog>
@@ -490,7 +491,13 @@ $('#chips').onclick=e=>{
   else if(d.edit!==undefined){S.edit=+d.edit;$('#q').value=S.terms[S.edit];$('#q').focus();$('#addBtn').textContent='Salvar'}
 };
 ['cs','whole'].forEach(id=>$('#'+id).onchange=runAuto);
-['showTags','showEmpty'].forEach(id=>$('#'+id).onchange=renderResults);
+$('#showEmpty').onchange=renderResults;
+function setTags(v){
+  $('#showTags').checked=$('#showTags2').checked=v;
+  renderResults();
+  if(S.ctx&&$('#dlg').open){const b=$('#ctx'),t=b.scrollTop;renderCtx();b.scrollTop=t}
+}
+['showTags','showTags2'].forEach(id=>$('#'+id).onchange=e=>setTags(e.target.checked));
 $('#results').onclick=e=>{
   const d=e.target.dataset;
   if(d.ctx){const[a,b,c]=d.ctx.split(':').map(Number);openCtx(a,b,c)}
