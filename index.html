@@ -22,7 +22,7 @@ ESTRUTURA (arquivo único para rodar com duplo clique, sem servidor; módulos se
 :root[data-theme="dark"]{--bg:#121714;--card:#1b221e;--tx:#e6ece8;--mut:#9aa8a0;--bd:#2d3832;--ac:#5fc4a8;--acb:#1f3a31;--onac:#0e1a15;--err:#ff8b7e;--t1:#18291f;--t2:#2b2515;--t3:#1a2236;--t4:#2b1c25;color-scheme:dark;--cur:#4a2327}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
-header,main,footer{max-width:1000px;margin:0 auto;padding:0 16px}
+header,main,footer{max-width:1050px;margin:0 auto;padding:0 20px}
 section.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px;margin:14px 0}
 h2{margin:0 0 10px;font:700 1.05rem/1.25 var(--disp)}
 button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:6px;padding:5px 11px;cursor:pointer}
@@ -107,6 +107,16 @@ body{border-top:5px solid;border-image:linear-gradient(90deg,#2f9e78,#f59f00,#4c
 .logo-st{fill:none;stroke:var(--onac);stroke-linecap:round;stroke-linejoin:round}
 .logo-ck{fill:none;stroke:var(--ac);stroke-linecap:round;stroke-linejoin:round}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== rodapé da família ===== */
+footer.ft{text-align:center;color:var(--mut);font-size:.9rem;line-height:1.5;padding:28px 20px 32px;max-width:none}
+footer.ft p{margin:0}footer.ft p+p{margin-top:6px}
+footer.ft a{color:var(--ac);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+
+/* ===== resultados centralizados ===== */
+.m .mb,.cx,.hd{text-align:center}
+.meta{justify-content:center}
+footer.ft p:first-child a{font-weight:400}
 </style>
 </head>
 <body>
@@ -173,7 +183,7 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
 </dialog>
 
 <input type="file" id="trIn" hidden>
-<footer>Adaptação da ferramenta <a href="https://subtricks.vercel.app/" target="_blank" rel="noopener"><strong>Subtricks</strong></a>, desenvolvida por <a href="https://linktr.ee/pedrospj" target="_blank" rel="noopener">Pedro Pereira</a>.</footer>
+<footer class="ft"><p>Adaptação da ferramenta <a href="https://subtricks.vercel.app/" target="_blank" rel="noopener">Subtricks</a>, desenvolvida por <a href="https://linktr.ee/pedrospj" target="_blank" rel="noopener">Pedro Pereira</a>.</p><p>Veja mais ferramentas úteis para legendagem clicando <a href="https://matmaggi.github.io/subtools/">aqui</a>.</p></footer>
 
 <script>
 'use strict';
