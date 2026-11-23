@@ -34,10 +34,15 @@ input[type=text]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(-
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row.sp{justify-content:space-between}
 label{display:inline-flex;gap:6px;align-items:center;margin-right:14px}
-.drop{border:2px dashed var(--bd);border-radius:8px;padding:12px;text-align:center;color:var(--mut);margin-bottom:10px}
-.drop.on{border-color:var(--ac);background:var(--acb)}
+.drop{display:flex;flex-direction:column;gap:2px;align-items:center;border:2px dashed var(--green);border-radius:14px;background:var(--card);padding:14px 12px;text-align:center;color:var(--mut);cursor:pointer}
+.drop strong{color:var(--tx);font-size:15px}
+.drop:hover,.drop.on{background:var(--acb);border-color:var(--ac)}
 #files{list-style:none;margin:8px 0 0;padding:0;max-height:220px;overflow:auto}
-#files li{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid var(--bd)}
+#files li{display:grid;grid-template-columns:minmax(0,1fr) 62px 76px 78px 22px;gap:8px;align-items:center;padding:2px 8px;font-size:12px;border-bottom:1px solid var(--bd)}
+#files .c-err{grid-column:2/5}
+#files .cn{text-align:right}
+#files .bdg{margin:0;font-size:10.5px}
+#files button{font-size:11px;padding:0;width:22px;height:20px;line-height:1}
 #files .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bad{color:var(--err)}.mut{color:var(--mut)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -46,6 +51,7 @@ label{display:inline-flex;gap:6px;align-items:center;margin-right:14px}
 #busy{position:sticky;top:0;z-index:5;background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin:10px 0;display:flex;gap:10px;align-items:center}
 #busy[hidden]{display:none}
 progress{flex:1}
+#sum{text-align:center;color:var(--err);font-weight:700}
 .grp h3{margin:16px 0 6px;font-size:15px;word-break:break-all}
 .cnt{background:var(--acb);color:var(--ac);border-radius:10px;padding:0 8px;font-size:13px}
 .empty{color:var(--mut);font-style:italic;margin:0}
@@ -117,6 +123,16 @@ footer.ft a{color:var(--ac);font-weight:600;text-decoration:underline;text-under
 .m .mb,.cx,.hd{text-align:center}
 .meta{justify-content:center}
 footer.ft p:first-child a{font-weight:400}
+button.sm{font-size:12.5px;padding:3px 10px;line-height:1.4}
+.cfg{flex-wrap:wrap;column-gap:8px}
+.cfg label{margin-right:6px}
+.cfg .sep{color:var(--mut);margin:0 4px}
+.gh{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;padding:0 147px 0 15px}
+.gh .gl{text-align:left}
+.gh .gr{text-align:right;font-size:13px;font-weight:400;color:var(--mut);margin-right:-136px}
+.gh .gr b{font-weight:700;color:var(--tx)}
+.gh .cnt{transform:translateX(7px)}
+@media(max-width:640px){.gh{padding:0}.gh .gr{margin-right:0}}
 </style>
 </head>
 <body>
@@ -128,25 +144,21 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
 </header>
 <main>
 <section class="card c1">
-  <h2>1. Arquivos de legenda</h2>
-  <div class="drop" id="drop">Arraste arquivos de legenda (SRT, TTML, DFXP, PXTT, TTAL) aqui ou use o botão abaixo</div>
-  <div class="row sp">
-    <div class="row"><button class="pri" id="addFiles">Adicionar arquivos</button><button class="dng" id="clearFiles">Remover todos</button></div>
-    <strong id="fcount">0 arquivos</strong>
-  </div>
+  <div class="row sp" style="margin-bottom:10px"><h2 style="margin:0">1. Arquivos de legenda</h2>
+    <div class="row"><button class="pri sm" id="addFiles">Adicionar arquivos</button><button class="dng sm" id="clearFiles">Remover todos</button></div></div>
+  <div class="drop" id="drop" role="button" tabindex="0"><strong>Clique aqui ou arraste o arquivo de legenda</strong><span id="dropSub">Nenhum arquivo escolhido (SRT, DFXP, PXTT, TTML ou TTAL)</span></div>
   <input type="file" id="fin" multiple hidden>
   <ul id="files"></ul>
 </section>
 
 <section class="card c2">
   <h2>2. Configurações da pesquisa</h2>
-  <div class="row" style="margin-bottom:6px">
+  <div class="row cfg">
     <strong>Modo:</strong>
-    <label><input type="radio" name="mode" value="live" checked> Tempo real (a partir de 3 caracteres)</label>
+    <label><input type="radio" name="mode" value="live" checked> Tempo real (3+ caracteres)</label>
     <label><input type="radio" name="mode" value="terms"> Lista de termos</label>
-  </div>
-  <div class="row">
-    <label><input type="checkbox" id="cs"> Diferenciar maiúsculas e minúsculas</label>
+    <span class="sep" aria-hidden="true">•</span>
+    <label><input type="checkbox" id="cs"> Diferenciar maiúsculas/minúsculas</label>
     <label><select id="whole"><option value="1">Palavra ou frase inteira</option><option value="0" selected>Parte de palavra ou frase</option></select></label>
   </div>
 </section>
@@ -163,8 +175,8 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
 
 <section class="card c4">
   <div class="row sp"><h2>4. Resultados</h2>
-    <div class="row"><button id="clearRes">Limpar resultados</button><button class="dng" id="reset">Resetar aplicação</button></div></div>
-  <div class="row">
+    <div class="row"><button class="blue sm" id="clearRes">Limpar resultados</button><button class="dng sm" id="reset">Resetar aplicação</button></div></div>
+  <div class="row" style="justify-content:center">
     <label><input type="checkbox" id="showTags"> Mostrar tags originais</label>
     <label><input type="checkbox" id="showEmpty"> Mostrar arquivos sem correspondência</label>
   </div>
@@ -175,8 +187,8 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
 </main>
 
 <dialog id="dlg">
-  <div class="row sp" style="margin-bottom:8px"><div style="min-width:0"><h2 style="margin:0">5. Contexto</h2><div id="ctxFile" style="font-size:13px;font-weight:600;word-break:break-all"></div></div>
-    <div class="row"><button id="trBtn" class="blue">Carregar tradução</button><button id="closeDlg" class="lblue">Fechar</button></div></div>
+  <div class="row sp" style="margin-bottom:8px"><div style="min-width:0"><h2 style="margin:0">5. Contexto</h2></div>
+    <div class="row"><button id="trBtn" class="blue sm">Carregar tradução</button><button id="closeDlg" class="lblue sm">Fechar</button></div></div>
   <label style="margin:0 0 6px"><input type="checkbox" id="showTags2"> Mostrar tags originais</label>
   <div id="trInfo" class="mut" style="font-size:13px;margin-bottom:6px"></div>
   <div id="ctx" style="overflow:auto;max-height:68vh"></div>
@@ -377,10 +389,8 @@ async function addFiles(list){
 }
 function renderFiles(){
   const n=S.files.length;
-  $('#fcount').textContent=`${n} arquivo${n===1?'':'s'}`;
-  $('#files').innerHTML=S.files.map(f=>`<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span>
-    <span>${f.error?`<span class="bad">Erro: ${esc(f.error)}</span>`:`${f.role?`<span class="bdg">${f.role==='s'?'origem':'tradução'}</span>`:''}${f.pw?`<span class="bdg" title="${esc(f.pw)}">⇄ pareado</span>`:''}<span class="mut">${f.cues.length} legendas</span>`}
-    <button data-rm="${f.id}" aria-label="Remover ${esc(f.name)}">✕</button></span></li>`).join('');
+  $('#dropSub').textContent=n?`${n} arquivo${n===1?'':'s'} carregado${n===1?'':'s'} — clique ou arraste para adicionar mais (SRT, DFXP, PXTT, TTML ou TTAL)`:'Nenhum arquivo escolhido (SRT, DFXP, PXTT, TTML ou TTAL)';
+  $('#files').innerHTML=S.files.map(f=>`<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span>${f.error?`<span class="bad c-err">Erro: ${esc(f.error)}</span>`:`<span>${f.role?`<span class="bdg">${f.role==='s'?'origem':'tradução'}</span>`:''}</span><span>${f.pw?`<span class="bdg" title="${esc(f.pw)}">⇄ pareado</span>`:''}</span><span class="mut cn">${f.cues.length} legendas</span>`}<button data-rm="${f.id}" aria-label="Remover ${esc(f.name)}">✕</button></li>`).join('');
 }
 
 /* ---------- Busca ---------- */
@@ -454,7 +464,12 @@ function renderResults(){
       continue;
     }
     total+=g.matches.length;nf++;
-    html+=`<div class="grp"><h3>${esc(f.name)} <span class="cnt">${g.matches.length}</span>${P?` <small class="mut">· Original (automático): ${esc(P.name)}</small>`:T?` <small class="mut">· Tradução${T.auto?' (automática)':''}: ${esc(T.name)}</small>`:''}</h3>`;
+    let h3;
+    if(P||T){
+      const L=P?P.name:f.name,Rn=P?f.name:T.name,au=P?true:!!T.auto;
+      h3=`<h3 class="gh"><span class="gl">${esc(L)}</span><span class="cnt">${g.matches.length}</span><span class="gr">Tradução${au?' (auto)':''}: <b>${esc(Rn)}</b></span></h3>`;
+    }else h3=`<h3>${esc(f.name)} <span class="cnt">${g.matches.length}</span></h3>`;
+    html+=`<div class="grp">${h3}`;
     for(const m of g.matches.slice(0,g.lim)){
       const c=f.cues[m.i];
       const H=hl(c,R.rxs[m.t],tags,color(m.t));
@@ -494,7 +509,6 @@ function openCtx(fid,i,t){
 function renderCtx(){
   const X=S.ctx;if(!X)return;
   const f=S.files.find(x=>x.id===X.fid);if(!f)return;
-  $('#ctxFile').textContent=f.name;
   const tags=$('#showTags').checked,a=Math.max(0,X.i-X.bf),b=Math.min(f.cues.length-1,X.i+X.af),T=S.trans[X.fid],P=isRev(f)?f.partner:null;
   let h=P?`<div class="hd"><strong>${esc(P.name)}</strong><strong>${esc(f.name)}</strong></div>`:T?`<div class="hd"><strong>${esc(f.name)}</strong><strong>${esc(T.name)}</strong></div>`:'';
   if(a>0)h+=`<button class="more" data-cm="b">Mostrar mais contexto anterior</button>`;
@@ -540,6 +554,8 @@ function resetAll(){
 
 /* ---------- Eventos ---------- */
 $('#addFiles').onclick=()=>$('#fin').click();
+$('#drop').onclick=()=>$('#fin').click();
+$('#drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#fin').click()}};
 $('#fin').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 $('#clearFiles').onclick=()=>{S.files=[];S.trans={};renderFiles();runAuto()};
 const drop=$('#drop');
