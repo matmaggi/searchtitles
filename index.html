@@ -30,7 +30,7 @@ button:hover{border-color:var(--ac)}
 button.pri{background:var(--ac);border-color:var(--ac);color:var(--onac)}
 button.dng{color:var(--err)}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-input[type=text]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)}
+input[type=text]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row.sp{justify-content:space-between}
 label{display:inline-flex;gap:6px;align-items:center;margin-right:14px}
@@ -56,9 +56,10 @@ progress{flex:1}
 .cnt{background:var(--acb);color:var(--ac);border-radius:10px;padding:0 8px;font-size:13px}
 .empty{color:var(--mut);font-style:italic;margin:0}
 .m,.cx{border:1px solid var(--bd);border-left:5px solid var(--tc,var(--bd));border-radius:6px;padding:8px 10px;margin:6px 0}
+.m{--btw:124px;background:var(--card);display:grid;grid-template-columns:minmax(0,1fr) var(--btw);gap:12px;align-items:start}
 .meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px;color:var(--mut)}
 .meta .tag{color:#222;border-radius:4px;padding:0 7px;font-weight:600}
-.meta button{margin-left:auto;font-size:13px;padding:2px 9px}
+
 .tx{white-space:pre-wrap;margin-top:4px;word-break:break-word}
 mark{background:var(--hl);color:#222;border-radius:2px}
 .more{width:100%}
@@ -69,7 +70,7 @@ mark{background:var(--hl);color:#222;border-radius:2px}
 .two .tr{padding-left:10px;border-left:2px dashed var(--bd)}
 .hd{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 10px 4px;font-size:13px;word-break:break-all}
 @media(max-width:640px){.two .cx,.hd{grid-template-columns:1fr}}
-dialog{width:min(1000px,96vw);max-height:90vh;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:16px}
+dialog{width:min(1000px,96vw);max-height:90vh;border:1px solid var(--bd);border-radius:10px;background:var(--t3);color:var(--tx);padding:16px}
 dialog::backdrop{background:#0008}
 footer{padding:10px 16px 28px;color:var(--mut);font-size:13px}
 footer a{color:var(--ac)}
@@ -77,22 +78,17 @@ section.c1{background:var(--t1);border-top:4px solid #2f9e78}
 section.c2{background:var(--t2);border-top:4px solid #f59f00}
 section.c3{background:var(--t4);border-top:4px solid #e64980}
 section.c4{background:var(--t3);border-top:4px solid #4c6ef5}
-.m{background:var(--card)}
-input[type=text],select{background:var(--card)}
-select{font:inherit;padding:5px 8px;border:1px solid var(--bd);border-radius:6px;color:var(--tx)}
+select{font:inherit;padding:5px 8px;border:1px solid var(--bd);border-radius:6px;color:var(--tx);background:var(--card)}
 .pri:hover{filter:brightness(1.12)}
-dialog{background:var(--t3)}
 dialog .cx{background:var(--card)}
 dialog .cx.cur{background:var(--cur);border-left-color:#e03131}
 .blue,#ctx .more{background:#1c5fd1;border-color:#1c5fd1;color:#fff}
 .lblue{background:#cfe0ff;border-color:#9db9ee;color:#1a3d7c}
 .blue:hover,#ctx .more:hover{filter:brightness(1.12)}
-.meta button+button{margin-left:0}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
 .cols .tr{padding-left:10px;border-left:2px dashed var(--bd)}
 .cols .tx{margin-top:0}
 @media(max-width:640px){.cols{grid-template-columns:1fr}}
-.m{display:grid;grid-template-columns:1fr 124px;gap:12px;align-items:start}
 .mb{min-width:0}
 .bt{display:flex;flex-direction:column;gap:6px}
 .bt button{width:100%;font-size:12.5px;padding:3px 6px;white-space:nowrap}
@@ -127,17 +123,30 @@ button.sm{font-size:12.5px;padding:3px 10px;line-height:1.4}
 .cfg{flex-wrap:wrap;column-gap:8px}
 .cfg label{margin-right:6px}
 .cfg .sep{color:var(--mut);margin:0 4px}
-.gh{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;padding:0 147px 0 15px}
+.gh{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) 124px;align-items:center;column-gap:6px;padding:0 11px 0 15px}
 .gh .gl{text-align:left}
-.gh .gr{text-align:right;font-size:13px;font-weight:400;color:var(--mut);margin-right:-136px}
+.gh .gr{grid-column:3/-1;text-align:right;font-size:13px;font-weight:400;color:var(--mut)}
 .gh .gr b{font-weight:700;color:var(--tx)}
-.gh .cnt{transform:translateX(7px)}
-@media(max-width:640px){.gh{padding:0}.gh .gr{margin-right:0}}
+@media(max-width:640px){.gh{grid-template-columns:1fr;row-gap:2px;padding:0}.gh .gl,.gh .gr{grid-column:auto;text-align:center}.gh .cnt{justify-self:center}}
+
+/* ===== balão de ajuda (README) ===== */
+.fh .brand{position:relative}
+.ajuda{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ac);color:var(--onac);font:700 15px/1 var(--sys);cursor:help;flex:none;align-self:center;user-select:none}
+.ajuda-box{position:absolute;top:100%;left:50%;transform:translateX(-50%);z-index:100;width:800px;max-width:calc(100vw - 32px);max-height:75vh;overflow:auto;margin-top:8px;padding:18px 24px;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-top:4px solid var(--ac);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.25);font:400 14px/1.55 var(--sys);text-align:justify;hyphens:none;-webkit-hyphens:none;word-break:normal;overflow-wrap:normal;cursor:auto;visibility:hidden;opacity:0;transition:opacity .12s ease .3s,visibility 0s linear .42s!important}
+.ajuda:hover .ajuda-box,.ajuda:focus .ajuda-box,.ajuda:focus-within .ajuda-box,.ajuda-box:hover{visibility:visible;opacity:1;transition:opacity .12s ease 0s,visibility 0s linear 0s!important}
+.ajuda-box h2{font:800 1.3rem/1.2 var(--disp);margin:0 0 6px;text-align:left}
+.ajuda-box h3{font:700 1.05rem/1.25 var(--disp);margin:16px 0 4px;text-align:left}
+.ajuda-box h4{font:700 .95rem/1.3 var(--sys);margin:12px 0 2px;text-align:left}
+.ajuda-box p{margin:6px 0}
+.ajuda-box ul{margin:4px 0;padding-left:22px}
+.ajuda-box li{margin:3px 0}
+/* ===== PIX ===== */
+.pix{user-select:all;-webkit-user-select:all;cursor:pointer;color:var(--tx);overflow-wrap:anywhere}
 </style>
 </head>
 <body>
 <header class="fh">
-  <div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><rect class="logo-bg" width="64" height="64" rx="16"/><rect class="logo-fg" x="12" y="12" width="40" height="5" rx="2.5"/><rect class="logo-fg" x="12" y="21" width="26" height="5" rx="2.5" opacity=".6"/><circle class="logo-st" cx="27" cy="41" r="10" stroke-width="4.5"/><path class="logo-st" d="M35 49L47 59" stroke-width="5"/></svg><h1>SearchTitles</h1></div>
+  <div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><rect class="logo-bg" width="64" height="64" rx="16"/><rect class="logo-fg" x="12" y="12" width="40" height="5" rx="2.5"/><rect class="logo-fg" x="12" y="21" width="26" height="5" rx="2.5" opacity=".6"/><circle class="logo-st" cx="27" cy="41" r="10" stroke-width="4.5"/><path class="logo-st" d="M35 49L47 59" stroke-width="5"/></svg><h1>SearchTitles</h1><span class="ajuda" tabindex="0" role="button" aria-label="Sobre o SearchTitles">?<div class="ajuda-box" role="tooltip"><h2>SearchTitles</h2><p><b>Buscador de legendas para contexto: encontre termos em vários arquivos de uma vez e veja como foram traduzidos.</b></p><p>O SearchTitles pesquisa palavras e frases em várias legendas ao mesmo tempo, mostra as falas ao redor e, se você carregar a tradução, exibe a versão traduzida da mesma fala. É útil para manter a consistência em séries e conferir como um termo foi usado antes.</p><h3>Formatos aceitos</h3><p>SRT, DFXP, PXTT, TTML e TTAL.</p><h3>Funcionalidades</h3><ul><li><b>Vários arquivos de uma vez:</b> adicione quantos quiser, arrastando ou clicando na área de arquivos, e remova individualmente ou todos.</li><li><b>Pareamento automático:</b> reconhece pelo nome qual arquivo é o original e qual é a tradução do mesmo episódio e mostra os dois lado a lado.</li><li><b>Dois modos de busca:</b><ul><li><i>Tempo real:</i> a busca começa sozinha a partir de 3 caracteres.</li><li><i>Lista de termos:</i> adicione vários termos (Enter), cada um buscado de forma independente.</li></ul></li><li><b>Busca normalizada:</b> por padrão, ignora acentos, maiúsculas e minúsculas e o tipo de aspas e apóstrofos (“nao” encontra “não”, “don't” encontra “don’t”).</li><li><b>Busca exata (opcional):</b> diferencia acentos, aspas e maiúsculas.</li><li><b>Palavra ou frase inteira</b> ou parte de palavra.</li><li><b>Ignora a formatação:</b> encontra o termo mesmo quando ele está dividido por tags (itálico etc.), sem alterar o texto original.</li><li><b>Leitura completa dos formatos:</b> itálico e negrito definidos em estilos de DFXP/TTML, estilos sobrepostos em TTAL, timecode drop-frame (29,97) e legendas SRT com linha em branco no meio do texto.</li><li><b>Resultados por arquivo, em ordem natural dos episódios</b> (E2 antes de E10), com o termo destacado. Uma legenda que contém vários termos da lista aparece uma vez só, com cada termo destacado na sua cor. Tem paginação ("Mostrar mais") e opção de mostrar os arquivos sem correspondência.</li><li><b>Contexto:</b> mostra as 3 legendas anteriores e as 3 posteriores, com botões para ver mais.</li><li><b>Tradução lado a lado:</b> carregue a legenda traduzida e veja a fala correspondente, pareada pelo tempo.</li><li><b>Mostrar tags originais</b> nos resultados e no contexto.</li><li>Limpar resultados ou resetar tudo.</li></ul><h3>Privacidade</h3><p>Todos os arquivos são analisados no seu computador. Nenhuma legenda é enviada para nenhum servidor.</p><h3>Créditos</h3><p>Adaptação da ferramenta Subtricks, desenvolvida por Pedro Pereira.</p></div></span></div>
   <p class="sub">Buscador de Legendas para Contexto</p>
   <p class="note">Todos os arquivos são analisados localmente no seu computador.<br/>
 Nenhuma legenda é enviada a nenhum servidor.</p>
@@ -145,7 +154,7 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
 <main>
 <section class="card c1">
   <div class="row sp" style="margin-bottom:10px"><h2 style="margin:0">1. Arquivos de legenda</h2>
-    <div class="row"><button class="pri sm" id="addFiles">Adicionar arquivos</button><button class="dng sm" id="clearFiles">Remover todos</button></div></div>
+    <div class="row"><button class="dng sm" id="clearFiles">Remover todos</button></div></div>
   <div class="drop" id="drop" role="button" tabindex="0"><strong>Clique aqui ou arraste o arquivo de legenda</strong><span id="dropSub">Nenhum arquivo escolhido (SRT, DFXP, PXTT, TTML ou TTAL)</span></div>
   <input type="file" id="fin" multiple hidden>
   <ul id="files"></ul>
@@ -158,7 +167,7 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
     <label><input type="radio" name="mode" value="live" checked> Tempo real (3+ caracteres)</label>
     <label><input type="radio" name="mode" value="terms"> Lista de termos</label>
     <span class="sep" aria-hidden="true">•</span>
-    <label><input type="checkbox" id="cs"> Diferenciar maiúsculas/minúsculas</label>
+    <label title="Desligada, a busca ignora acentos, maiúsculas/minúsculas e o tipo de aspas e apóstrofos (’ = ')."><input type="checkbox" id="cs"> Busca exata (acentos, aspas e maiúsculas)</label>
     <label><select id="whole"><option value="1">Palavra ou frase inteira</option><option value="0" selected>Parte de palavra ou frase</option></select></label>
   </div>
 </section>
@@ -187,7 +196,7 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
 </main>
 
 <dialog id="dlg">
-  <div class="row sp" style="margin-bottom:8px"><div style="min-width:0"><h2 style="margin:0">5. Contexto</h2></div>
+  <div class="row sp" style="margin-bottom:8px"><div style="min-width:0"><h2 style="margin:0">Contexto</h2></div>
     <div class="row"><button id="trBtn" class="blue sm">Carregar tradução</button><button id="closeDlg" class="lblue sm">Fechar</button></div></div>
   <label style="margin:0 0 6px"><input type="checkbox" id="showTags2"> Mostrar tags originais</label>
   <div id="trInfo" class="mut" style="font-size:13px;margin-bottom:6px"></div>
@@ -195,7 +204,7 @@ Nenhuma legenda é enviada a nenhum servidor.</p>
 </dialog>
 
 <input type="file" id="trIn" hidden>
-<footer class="ft"><p>Adaptação da ferramenta <a href="https://subtricks.vercel.app/" target="_blank" rel="noopener">Subtricks</a>, desenvolvida por <a href="https://linktr.ee/pedrospj" target="_blank" rel="noopener">Pedro Pereira</a>.</p><p>Veja mais ferramentas úteis para legendagem clicando <a href="https://matmaggi.github.io/subtools/">aqui</a>.</p></footer>
+<footer class="ft"><p>Adaptação da ferramenta <a href="https://subtricks.vercel.app/" target="_blank" rel="noopener">Subtricks</a>, desenvolvida por <a href="https://linktr.ee/pedrospj" target="_blank" rel="noopener">Pedro Pereira</a>.</p><p>Veja mais ferramentas úteis para legendagem clicando <a href="https://matmaggi.github.io/subtools/">aqui</a>.</p><p>Achou a ferramenta útil? Faz um PIX! <b class="pix" title="Clique para selecionar a chave PIX">5a08fa27-b8f4-4935-9857-6b03fb63248a</b></p></footer>
 
 <script>
 'use strict';
@@ -216,15 +225,23 @@ Parsers.register({id:'srt',exts:['srt'],parse(text){
   text=text.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
   const T=/(\d+):(\d{1,2}):(\d{1,2})[,.](\d{1,3})\s*-->\s*(\d+):(\d{1,2}):(\d{1,2})[,.](\d{1,3})/;
   const ms=(h,m,s,f)=>((+h*60+ +m)*60+ +s)*1000+ +f.padEnd(3,'0');
-  const cues=[];
-  for(const b of text.split(/\n\s*\n/)){
-    const L=b.split('\n');let k=0;
-    while(k<L.length&&!T.test(L[k]))k++;
-    if(k>1||k>=L.length)continue;
+  /* cada legenda vai de uma linha de tempo até a próxima; linhas em branco no meio do texto não cortam a legenda.
+     Um número sozinho só é numeração se vier logo antes de uma linha de tempo. */
+  const L=text.split('\n'),cues=[];let cur=null;
+  const fecha=()=>{if(!cur)return;while(cur.tx.length&&!cur.tx[cur.tx.length-1].trim())cur.tx.pop();
+    cur.raw=cur.tx.filter(x=>x.trim()).join('\n');delete cur.tx;if(cur.raw)cues.push(cur);cur=null};
+  for(let k=0;k<L.length;k++){
     const t=L[k].match(T);
-    const n=k===1&&/^\s*\d+\s*$/.test(L[0])?+L[0]:cues.length+1;
-    cues.push({n,start:ms(t[1],t[2],t[3],t[4]),end:ms(t[5],t[6],t[7],t[8]),raw:L.slice(k+1).join('\n')});
+    if(t){
+      let num=null;
+      if(cur){let j=cur.tx.length-1;while(j>=0&&!cur.tx[j].trim())j--;
+        if(j>=0&&/^\s*\d+\s*$/.test(cur.tx[j])&&(j===0||!cur.tx[j-1].trim())){num=+cur.tx[j];cur.tx.length=j}}
+      else if(k>0){let j=k-1;while(j>=0&&!L[j].trim())j--;if(j>=0&&/^\s*\d+\s*$/.test(L[j]))num=+L[j]}
+      fecha();
+      cur={n:num??cues.length+1,start:ms(t[1],t[2],t[3],t[4]),end:ms(t[5],t[6],t[7],t[8]),tx:[]};
+    }else if(cur)cur.tx.push(L[k]);
   }
+  fecha();
   if(!cues.length)throw new Error('nenhuma legenda válida encontrada');
   return cues;
 }});
@@ -237,37 +254,62 @@ function finish(cues){
 function ttmlParse(text){
   const doc=new DOMParser().parseFromString(text.replace(/^\uFEFF/,''),'application/xml');
   if(doc.querySelector('parsererror'))throw new Error('XML inválido');
-  const tt=doc.documentElement,fr=+(tt.getAttribute('ttp:frameRate')||30),tr=+(tt.getAttribute('ttp:tickRate')||1e7);
-  const [mn,md]=(tt.getAttribute('ttp:frameRateMultiplier')||'1 1').split(/\s+/).map(Number);
-  const fps=fr*mn/(md||1);
+  /* atributos pelo nome local (funciona com qualquer prefixo: tts:, ttp:, xml:...) */
+  const ga=(el,n)=>{for(const a of el.attributes)if(a.localName===n)return a.value;return null};
+  const tt=doc.documentElement,fr=+(ga(tt,'frameRate')||30),tr=+(ga(tt,'tickRate')||1e7);
+  const [mn,md]=(ga(tt,'frameRateMultiplier')||'1 1').split(/\s+/).map(Number);
+  const fps=fr*(mn||1)/(md||1),dropDoc=/^dropNTSC$/i.test(ga(tt,'dropMode')||'');
+  /* drop-frame (29,97/59,94): o timecode pula 2 (ou 4) números de quadro por minuto, exceto a cada 10 minutos */
+  const frames=(h,mi,s,f,drop)=>{
+    const tot=(h*3600+mi*60+s)*fr+f;
+    if(!drop||(fr!==30&&fr!==60))return tot;
+    const dpm=fr===30?2:4,min=h*60+mi;return tot-dpm*(min-Math.floor(min/10));
+  };
   const time=v=>{
     v=(v||'').trim();let m;
-    if((m=v.match(/^(\d+):(\d+):(\d+)[:;](\d+)$/)))return Math.round(((+m[1]*3600+ +m[2]*60+ +m[3])*fr+ +m[4])/fps*1000);
+    if((m=v.match(/^(\d+):(\d+):(\d+)([:;])(\d+)(?:\.\d+)?$/)))return Math.round(frames(+m[1],+m[2],+m[3],+m[5],dropDoc||m[4]===';')/fps*1000);
     if((m=v.match(/^(\d+):(\d+):(\d+(?:[.,]\d+)?)$/)))return Math.round((+m[1]*3600+ +m[2]*60+ +m[3].replace(',','.'))*1000);
     if((m=v.match(/^([\d.]+)(ms|h|m|s|f|t)$/))){const x=+m[1];return Math.round({h:x*3.6e6,m:x*6e4,s:x*1e3,ms:x,f:x/fps*1e3,t:x/tr*1e3}[m[2]])}
     return NaN;
   };
-  const walk=n=>{
+  /* itálico e negrito: atributos diretos ou estilos nomeados (<style xml:id="s1" tts:fontStyle="italic"/>, style="s1 s2"),
+     inclusive estilos que herdam de outros estilos */
+  const STY={};
+  for(const st of doc.getElementsByTagNameNS('*','style')){const id=ga(st,'id');if(id)STY[id]=st}
+  const own=el=>{const o={},fs=ga(el,'fontStyle'),fw=ga(el,'fontWeight');
+    if(fs)o.i=/italic|oblique/i.test(fs);if(fw)o.b=/bold/i.test(fw);return o};
+  const styFlags=(id,seen=new Set())=>{const st=STY[id];if(!st||seen.has(id))return{};seen.add(id);
+    let o={};for(const r of (ga(st,'style')||'').split(/\s+/).filter(Boolean))o={...o,...styFlags(r,seen)};return{...o,...own(st)}};
+  const flags=(el,inh)=>{let o={...inh};for(const r of (ga(el,'style')||'').split(/\s+/).filter(Boolean))o={...o,...styFlags(r)};return{...o,...own(el)}};
+  const walk=(n,st)=>{
     let o='';
     for(const k of n.childNodes){
-      if(k.nodeType===3)o+=k.nodeValue.replace(/\s+/g,' ');
+      if(k.nodeType===3||k.nodeType===4)o+=k.nodeValue.replace(/\s+/g,' ');
       else if(k.nodeType===1){
         if(k.localName==='br')o+='\n';
         else if(k.localName!=='metadata'){
-          let x=walk(k);const st=k.getAttribute('tts:fontStyle'),w=k.getAttribute('tts:fontWeight');
-          if(st==='italic'||st==='oblique')x=`<i>${x}</i>`;
-          if(w==='bold')x=`<b>${x}</b>`;
+          const ns=flags(k,st);let x=walk(k,ns);
+          if(ns.i&&!st.i)x=`<i>${x}</i>`;
+          if(ns.b&&!st.b)x=`<b>${x}</b>`;
           o+=x;
         }
       }
     }
     return o;
   };
+  /* estilo herdado da região e dos elementos acima do <p> (body, div) */
+  const REG={};
+  for(const rg of doc.getElementsByTagNameNS('*','region')){const id=ga(rg,'id');if(id)REG[id]=rg}
+  const base=p=>{const chain=[];for(let el=p.parentNode;el&&el.nodeType===1&&el!==tt;el=el.parentNode)chain.unshift(el);
+    let o={};const rid=[p,...chain].map(e=>ga(e,'region')).find(Boolean);if(rid&&REG[rid])o=flags(REG[rid],o);
+    for(const el of chain)o=flags(el,o);return o};
   const cues=[];
   for(const p of doc.getElementsByTagNameNS('*','p')){
     const s=time(p.getAttribute('begin'));let e=time(p.getAttribute('end'));
     if(isNaN(e)){const d=time(p.getAttribute('dur'));if(!isNaN(d))e=s+d}
-    const raw=walk(p).split('\n').map(x=>x.trim()).join('\n').trim();
+    const b0=base(p),pf=flags(p,b0);let txt=walk(p,pf);
+    if(pf.i)txt=`<i>${txt}</i>`;if(pf.b)txt=`<b>${txt}</b>`;
+    const raw=txt.split('\n').map(x=>x.trim()).join('\n').trim();
     if(!isNaN(s)&&!isNaN(e)&&raw)cues.push({start:s,end:e,raw});
   }
   return finish(cues);
@@ -283,10 +325,20 @@ Parsers.register({id:'ttal',exts:['ttal'],parse(text){
   const fm=d.meta&&d.meta.timeFormat==='FRAMES',T=v=>Math.round(fm?v/fps*1000:v);
   const tg={italic:'i',bold:'b',underline:'u'},cues=[];
   for(const e of Object.values(d.events)){
-    let t=String(e.txt||'');if(!t.trim())continue;
-    const st=(e.styles||[]).filter(x=>tg[x.type]&&x.to>x.from).sort((a,b)=>b.from-a.from);
-    for(const x of st){const g=tg[x.type];t=t.slice(0,x.from)+`<${g}>`+t.slice(x.from,x.to)+`</${g}>`+t.slice(x.to)}
-    cues.push({start:T(e.start),end:T(e.end),raw:t});
+    const t=String(e.txt||'');if(!t.trim())continue;
+    /* marca cada caractere com seus estilos e abre/fecha as tags só onde o conjunto muda:
+       funciona com intervalos sobrepostos (itálico + negrito) e sempre gera tags bem aninhadas */
+    const on=Array.from({length:t.length},()=>new Set());
+    for(const x of e.styles||[]){const g=tg[x.type];if(!g)continue;for(let k=Math.max(0,x.from);k<Math.min(t.length,x.to);k++)on[k].add(g)}
+    let raw='',open=[];
+    for(let k=0;k<=t.length;k++){
+      const want=k<t.length?['i','b','u'].filter(g=>on[k].has(g)):[];
+      let keep=0;while(keep<open.length&&keep<want.length&&open[keep]===want[keep])keep++;
+      for(let j=open.length-1;j>=keep;j--)raw+=`</${open[j]}>`;
+      for(let j=keep;j<want.length;j++)raw+=`<${want[j]}>`;
+      open=want;if(k<t.length)raw+=t[k];
+    }
+    cues.push({start:T(e.start),end:T(e.end),raw});
   }
   return finish(cues);
 }});
@@ -299,10 +351,24 @@ function prepare(c){
   const raw=c.raw;let plain='',last=0,m;const map=[];let any=false;
   TAG.lastIndex=0;
   while((m=TAG.exec(raw))){any=true;plain+=raw.slice(last,m.index);for(let i=last;i<m.index;i++)map.push(i);last=m.index+m[0].length}
-  if(!any){c.plain=raw;c.map=null;return}
-  plain+=raw.slice(last);for(let i=last;i<raw.length;i++)map.push(i);
-  c.plain=plain;c.map=Int32Array.from(map);
+  if(!any){c.plain=raw;c.map=null}
+  else{plain+=raw.slice(last);for(let i=last;i<raw.length;i++)map.push(i);c.plain=plain;c.map=Int32Array.from(map)}
+  c.norm=normText(c.plain);
 }
+/* busca normalizada: sem acentos, sem maiúsculas e com aspas/apóstrofos unificados.
+   Troca caractere por caractere (mesmo tamanho), então as posições continuam valendo para o destaque. */
+const QUOTE={'’':"'",'‘':"'",'‚':"'",'‛':"'",'′':"'",'`':"'",'´':"'",'“':'"','”':'"','„':'"','‟':'"','″':'"','«':'"','»':'"'};
+const NC=new Map();
+function normChar(ch){
+  let r=NC.get(ch);if(r!==undefined)return r;
+  r=QUOTE[ch];
+  if(r===undefined){
+    const b=ch.normalize('NFD').replace(/[̀-ͯ]/g,'');r=b.length===1?b:ch;
+    const l=r.toLowerCase();if(l.length===1)r=l;
+  }
+  NC.set(ch,r);return r;
+}
+const normText=s=>{let o='';for(let i=0;i<s.length;i++)o+=normChar(s[i]);return o};
 async function readText(f){
   const b=await f.arrayBuffer();
   try{return new TextDecoder('utf-8',{fatal:true}).decode(b)}catch{return new TextDecoder('windows-1252').decode(b)}
@@ -385,6 +451,8 @@ async function addFiles(list){
     S.files.push(e);renderFiles();await tick();
   }
   busy(false);
+  const nat=new Intl.Collator('pt',{numeric:true,sensitivity:'base'});
+  S.files.sort((a,b)=>nat.compare(a.name,b.name));
   autoPair();renderFiles();runAuto();
 }
 function renderFiles(){
@@ -395,26 +463,29 @@ function renderFiles(){
 
 /* ---------- Busca ---------- */
 function buildRx(term){
-  const o=opts();let s=escRx(term).replace(/\s+/g,'\\s+');
+  const o=opts();let s=escRx(o.cs?term:normText(term)).replace(/\s+/g,'\\s+');
   if(o.whole)s=`(?<![\\p{L}\\p{N}_])${s}(?![\\p{L}\\p{N}_])`;
-  return new RegExp(s,'gu'+(o.cs?'':'i'));
+  return new RegExp(s,'gu');
 }
 async function runSearch(terms){
   const tok=++S.tok,files=S.files.filter(f=>f.cues);
   if(!terms.length||!files.length){S.results=null;renderResults();return}
-  const rxs=terms.map(buildRx),groups=[];let last=performance.now();
+  const rxs=terms.map(buildRx),exact=opts().cs,groups=[];let last=performance.now();
   for(let k=0;k<files.length;k++){
     const f=files[k],matches=[];
     busy(true,`Pesquisando… ${k+1}/${files.length}`,k/files.length);
     for(let i=0;i<f.cues.length;i++){
-      const p=f.cues[i].plain;
-      for(let t=0;t<rxs.length;t++){rxs[t].lastIndex=0;if(rxs[t].test(p))matches.push({i,t})}
+      const p=exact?f.cues[i].plain:f.cues[i].norm,ts=[];
+      for(let t=0;t<rxs.length;t++){rxs[t].lastIndex=0;if(rxs[t].test(p))ts.push(t)}
+      if(ts.length)matches.push({i,t:ts[0],ts});  // uma legenda aparece uma vez só, mesmo com vários termos
     }
     groups.push({fid:f.id,matches,lim:LIM});
     if(performance.now()-last>30){await tick();last=performance.now();if(tok!==S.tok)return}
   }
   if(tok!==S.tok)return;
-  S.results={terms:terms.slice(),rxs,groups};
+  const nat=new Intl.Collator('pt',{numeric:true,sensitivity:'base'}),nm=id=>(S.files.find(x=>x.id===id)||{}).name||'';
+  groups.sort((a,b)=>nat.compare(nm(a.fid),nm(b.fid)));
+  S.results={terms:terms.slice(),rxs,groups,exact};
   busy(false);renderResults();
 }
 function runTerms(){
@@ -431,22 +502,23 @@ function runLive(){
 }
 
 /* ---------- Destaque ---------- */
-function hl(c,rx,tags,col){
-  const flags=new Uint8Array(c.raw.length);let m;
-  if(rx){
-    rx.lastIndex=0;
-    while((m=rx.exec(c.plain))){
-      for(let i=m.index;i<m.index+m[0].length;i++)flags[c.map?c.map[i]:i]=1;
+/* hits: lista de [regex, cor]; cada trecho encontrado fica com a cor do seu termo */
+function hl(c,hits,tags,exact){
+  const flags=new Uint8Array(c.raw.length),cols=[null],txt=exact?c.plain:c.norm;let m;
+  (hits||[]).forEach(([rx,col])=>{
+    const v=cols.push(col||PAL[0])-1;rx.lastIndex=0;
+    while((m=rx.exec(txt))){
+      for(let i=m.index;i<m.index+m[0].length;i++)if(!flags[c.map?c.map[i]:i])flags[c.map?c.map[i]:i]=v;
       if(!m[0].length)rx.lastIndex++;
     }
-  }
+  });
   let src=c.raw,fl=flags;
   if(!tags){src=c.plain;fl=c.map?Uint8Array.from(c.map,r=>flags[r]):flags}
   let out='',i=0;
   while(i<src.length){
     let j=i;const on=fl[i];
     while(j<src.length&&fl[j]===on)j++;
-    const t=esc(src.slice(i,j));out+=on?`<mark style="background:${col||PAL[0]}">${t}</mark>`:t;i=j;
+    const t=esc(src.slice(i,j));out+=on?`<mark style="background:${cols[on]}">${t}</mark>`:t;i=j;
   }
   return out;
 }
@@ -472,8 +544,8 @@ function renderResults(){
     html+=`<div class="grp">${h3}`;
     for(const m of g.matches.slice(0,g.lim)){
       const c=f.cues[m.i];
-      const H=hl(c,R.rxs[m.t],tags,color(m.t));
-      const mt=`<div class="meta">${multi?`<span class="tag" style="background:${color(m.t)}">${esc(R.terms[m.t])}</span>`:''}<span>#${c.n}</span><span>${fmt(c.start)}</span></div>`;
+      const H=hl(c,m.ts.map(t=>[R.rxs[t],color(t)]),tags,R.exact);
+      const mt=`<div class="meta">${multi?m.ts.map(t=>`<span class="tag" style="background:${color(t)}">${esc(R.terms[t])}</span>`).join(''):''}<span>#${c.n}</span><span>${fmt(c.start)}</span></div>`;
       html+=`<article class="m"${multi?` style="--tc:${color(m.t)}"`:''}><div class="mb">${P?`<div class="cols">${srcHtml(c,P,tags,true)}<div class="tr"><div>${mt}<div class="tx">${H}</div></div></div></div>`:T?`<div class="cols"><div>${mt}<div class="tx">${H}</div></div>${trHtml(c,T,tags,true)}</div>`:`${mt}<div class="tx">${H}</div>`}</div>
         <div class="bt">${P?'':`<button class="blue" data-tr="${f.id}">${T?'Trocar tradução':'Carregar tradução'}</button>`}<button data-ctx="${f.id}:${m.i}:${m.t}">Mostrar contexto</button></div></article>`;
     }
@@ -503,7 +575,8 @@ function trHtml(c,T,tags,short){
   return `<div class="tr">${p.length?p.map(t=>`<div><div class="meta">${short?fmt(t.start):`${fmt(t.start)} → ${fmt(t.end)}`}</div><div class="tx">${esc(tags?t.raw:t.plain)}</div></div>`).join(''):'<em>Tradução não encontrada.</em>'}</div>`;
 }
 function openCtx(fid,i,t){
-  S.ctx={fid,i,rx:S.results.rxs[t],term:S.results.terms[t],col:color(t),multi:S.results.terms.length>1,bf:3,af:3};
+  const g=S.results.groups.find(x=>x.fid===fid),mm=g&&g.matches.find(x=>x.i===i),ts=mm?mm.ts:[t];
+  S.ctx={fid,i,hits:ts.map(k=>[S.results.rxs[k],color(k)]),terms:ts.map(k=>[S.results.terms[k],color(k)]),col:color(t),exact:S.results.exact,multi:S.results.terms.length>1,bf:3,af:3};
   renderCtx();$('#dlg').showModal();
 }
 function renderCtx(){
@@ -514,8 +587,8 @@ function renderCtx(){
   if(a>0)h+=`<button class="more" data-cm="b">Mostrar mais contexto anterior</button>`;
   for(let k=a;k<=b;k++){
     const c=f.cues[k],cur=k===X.i;
-    const own=`<div><div class="meta"><span>#${c.n}</span><span>${fmt(c.start)} → ${fmt(c.end)}</span>${cur&&X.multi?`<span class="tag" style="background:${X.col}">${esc(X.term)}</span>`:''}</div>
-      <div class="tx">${hl(c,cur?X.rx:null,tags,X.col)}</div></div>`;
+    const own=`<div><div class="meta"><span>#${c.n}</span><span>${fmt(c.start)} → ${fmt(c.end)}</span>${cur&&X.multi?X.terms.map(([t,cl])=>`<span class="tag" style="background:${cl}">${esc(t)}</span>`).join(''):''}</div>
+      <div class="tx">${hl(c,cur?X.hits:null,tags,X.exact)}</div></div>`;
     h+=`<div class="cx${cur?' cur':''}">${P?`${srcHtml(c,P,tags)}<div class="tr">${own}</div>`:own+(T?trHtml(c,T,tags):'')}</div>`;
   }
   if(b<f.cues.length-1)h+=`<button class="more" data-cm="a">Mostrar mais contexto posterior</button>`;
@@ -553,7 +626,6 @@ function resetAll(){
 }
 
 /* ---------- Eventos ---------- */
-$('#addFiles').onclick=()=>$('#fin').click();
 $('#drop').onclick=()=>$('#fin').click();
 $('#drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#fin').click()}};
 $('#fin').onchange=e=>{addFiles(e.target.files);e.target.value=''};
